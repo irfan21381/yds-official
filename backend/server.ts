@@ -16,12 +16,11 @@ const app = express();
 ========================================================= */
 app.use(
   cors({
-    origin: true, // allow all origins (change in prod)
+    origin: true,
     credentials: true,
   })
 );
 
-// Preflight
 app.options("*", cors());
 
 /* =========================================================
