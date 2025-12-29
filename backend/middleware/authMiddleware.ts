@@ -5,40 +5,15 @@ import { CustomError } from "../utils/errorHandler";
 import { ROLES } from "../constants/roles";
 
 /* =========================================================
-   👤 AUTHENTICATED USER TYPE
-   ========================================================= */
-
-export interface AuthenticatedUser {
-  id: string;
-  role: string;
-  collegeId?: string;
-}
-
-/* =========================================================
-   📦 AUTHENTICATED REQUEST (IMPORTANT FIX)
-   ========================================================= */
-/**
- * This EXTENDS Express Request correctly
- * so body, params, query, headers ALL EXIST
- */
-export interface AuthenticatedRequest<
-  P = any,
-  ResBody = any,
-  ReqBody = any,
-  ReqQuery = any
-> extends Request<P, ResBody, ReqBody, ReqQuery> {
-  user?: AuthenticatedUser;
-}
-
-/* =========================================================
    🔐 AUTH MIDDLEWARE
    ========================================================= */
 
 /**
  * Protect routes – verifies JWT and attaches user to req
+ * NOTE: `req.user` comes from global Express augmentation
  */
 export const protect = async (
-  req: AuthenticatedRequest,
+  req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -90,7 +65,7 @@ export const protect = async (
  */
 export const authorize =
   (...allowedRoles: string[]) =>
-  (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
+  (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       return next(new CustomError("Unauthorized", 401));
     }
