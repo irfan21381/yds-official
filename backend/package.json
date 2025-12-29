@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only server.ts",
    "build": "ts-node --transpile-only server.ts",
-    "start": "node dist/server.js",
+   "build": "npx ts-node --transpile-only server.ts",
     "seed": "ts-node scripts/seed.ts"
   },
   "engines": {
