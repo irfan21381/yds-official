@@ -1,19 +1,33 @@
 import { Request, Response, NextFunction } from "express";
-import { File } from "multer";
 import User from "../models/User";
 import { verifyToken } from "../utils/jwt";
 import { CustomError } from "../utils/errorHandler";
 import { ROLES } from "../constants/roles";
 
-interface AuthenticatedUser {
+/* =========================================================
+   👤 AUTHENTICATED USER TYPE
+   ========================================================= */
+
+export interface AuthenticatedUser {
   id: string;
   role: string;
   collegeId?: string;
 }
 
-interface AuthenticatedRequest extends Request {
+/* =========================================================
+   📦 AUTHENTICATED REQUEST (IMPORTANT FIX)
+   ========================================================= */
+/**
+ * This EXTENDS Express Request correctly
+ * so body, params, query, headers ALL EXIST
+ */
+export interface AuthenticatedRequest<
+  P = any,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = any
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
   user?: AuthenticatedUser;
-  files?: File[] | { [fieldname: string]: File[] };
 }
 
 /* =========================================================
@@ -32,7 +46,10 @@ export const protect = async (
     let token: string | undefined;
 
     // Read token from Authorization header
-    if (req.headers.authorization?.startsWith("Bearer ")) {
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer ")
+    ) {
       token = req.headers.authorization.split(" ")[1];
     }
 
@@ -43,7 +60,7 @@ export const protect = async (
     // Verify token
     const decoded: any = verifyToken(token);
 
-    // Get user
+    // Get user from DB
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
