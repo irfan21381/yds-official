@@ -4,9 +4,9 @@
   "description": "Backend for Yasin Digital Solutions (YDS)",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only server.ts",
-   "build": "ts-node --transpile-only server.ts",
-   "build": "npx ts-node --transpile-only server.ts",
+  "dev": "ts-node-dev --respawn --transpile-only server.ts",
+  "build": "tsc",
+  "start": "node dist/server.js",
     "seed": "ts-node scripts/seed.ts"
   },
   "engines": {
