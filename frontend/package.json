@@ -21,7 +21,8 @@
   "lucide-react": "^0.468.0",
   "react-pdf": "^9.1.0",
   "pdfjs-dist": "^4.4.168",
-  "@radix-ui/react-alert-dialog": "^1.1.1"
+  "@radix-ui/react-alert-dialog": "^1.1.1",
+  "@radix-ui/react-slot": "^1.0.2"
 },
   "devDependencies": {
     "@types/react": "^18.3.3",
