@@ -2,17 +2,18 @@
   "name": "yds-backend",
   "version": "1.0.0",
   "description": "Backend for Yasin Digital Solutions (YDS)",
-  "main": "dist/server.js",
-"scripts": {
-  "dev": "ts-node-dev --respawn --transpile-only server.ts",
-  "build": "echo \"Skipping TypeScript build\"",
-  "start": "node server.ts",
- "seed": "ts-node scripts/seed.ts"
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only server.ts",
+    "build": "echo \"Skipping TypeScript build\"",
+    "start": "npx ts-node --transpile-only server.ts",
+    "seed": "npx ts-node scripts/seed.ts"
   },
   "engines": {
-   "node": "18.x"
+    "node": "18.x"
   },
   "dependencies": {
+    "ts-node": "^10.9.2",
+
     "@aws-sdk/client-s3": "^3.621.0",
     "@aws-sdk/s3-request-presigner": "^3.621.0",
     "@google-cloud/local-auth": "^3.0.1",
@@ -40,7 +41,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
