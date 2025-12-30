@@ -1,15 +1,9 @@
 import { Router } from "express";
+import { getPublicStats } from "../controllers/statsController";
 
 const router = Router();
 
-// ✅ PUBLIC STATS API
-router.get("/", (_req, res) => {
-  res.status(200).json({
-    colleges: 42,
-    students: 1200,
-    internships: 85,
-    products: 12,
-  });
-});
+// PUBLIC
+router.get("/", getPublicStats);
 
 export default router;
