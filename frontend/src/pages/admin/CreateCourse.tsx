@@ -2,6 +2,8 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 
+import CourseForm from "@/components/superadmin/CourseForm";
+
 export default function CreateCourse() {
   const navigate = useNavigate();
 
