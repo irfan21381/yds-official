@@ -5,14 +5,15 @@ import dotenv from "dotenv";
 dotenv.config();
 
 /* ======================================================
-   📧 ZOHO SMTP TRANSPORTER (LOGIN OTP)
+   📧 SMTP TRANSPORTER (SERVER ONLY)
+   Used internally for sending LOGIN OTP emails
 ====================================================== */
 const transporter = nodemailer.createTransport({
-  host: "smtp.zoho.in",
-  port: 465,          // ✅ ZOHO SSL
-  secure: true,       // ✅ MUST be true for 465
+  host: process.env.MAIL_HOST || "smtp.zoho.in",
+  port: Number(process.env.MAIL_PORT) || 465,
+  secure: true, // ✅ REQUIRED for port 465 (Zoho SSL)
   auth: {
-    user: process.env.MAIL_USER, // your Zoho email
+    user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS, // Zoho App Password
   },
 });
@@ -53,9 +54,9 @@ export const sendOTPEmail = async (
       `,
     });
 
-    console.log(`✅ LOGIN OTP sent via ZOHO to ${email}`);
+    console.log(`✅ Login OTP sent to ${email}`);
   } catch (error) {
-    console.error("❌ ZOHO SMTP ERROR:", error);
+    console.error("❌ Failed to send login OTP email:", error);
     throw new Error("Failed to send login OTP email");
   }
 };
