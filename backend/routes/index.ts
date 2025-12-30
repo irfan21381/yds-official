@@ -13,6 +13,7 @@ import paymentRequestRoutes from "./paymentRequestRoutes";
 import salaryPaymentRoutes from "./salaryPaymentRoutes";
 import employeeRoutes from "./employeeRoutes";
 import contactRoutes from "./contactRoutes";
+import collegesRoutes from "./collegesRoutes";
 
 const router = Router();
 
@@ -34,6 +35,7 @@ router.use("/payment-requests", paymentRequestRoutes);
 router.use("/salary-payments", salaryPaymentRoutes);
 router.use("/employee", employeeRoutes);
 router.use("/contact", contactRoutes);
+router.use("/colleges", collegesRoutes);
 
 router.get("/", (_req, res) => {
   res.json({ ok: true, message: "YDS API running" });
