@@ -1,9 +1,9 @@
 import express from "express";
-import { getGlobalAnalytics } from "../controllers/adminController";
+import { getPublicStats } from "../controllers/statsController";
 
 const router = express.Router();
 
-// 🌍 PUBLIC READ-ONLY STATS
-router.get("/", getGlobalAnalytics);
+// 🌍 PUBLIC HOMEPAGE STATS
+router.get("/", getPublicStats);
 
 export default router;
