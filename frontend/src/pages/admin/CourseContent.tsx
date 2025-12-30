@@ -1,5 +1,9 @@
  import { useState } from "react";
 import { Plus, FileText, Image, HelpCircle } from "lucide-react";
+import AddContentModal from "@/components/superadmin/AddContentModal";
+import ModuleCard from "@/components/superadmin/ModuleCard";
+import QuizBuilder from "@/components/superadmin/QuizBuilder";
+
 
 type ContentType = "text" | "diagram" | "quiz";
 
