@@ -5,29 +5,42 @@ import dotenv from "dotenv";
 dotenv.config();
 
 /* ======================================================
-   📧 SMTP TRANSPORTER (SERVER ONLY)
-   Used internally for sending LOGIN OTP emails
+   📧 SMTP TRANSPORTER (RENDER SAFE)
 ====================================================== */
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST || "smtp.zoho.in",
   port: Number(process.env.MAIL_PORT) || 587,
-  secure: true, // ✅ REQUIRED for port 465 (Zoho SSL)
+  secure: false,        // MUST be false for 587
+  requireTLS: true,     // force TLS
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS, // Zoho App Password
+    pass: process.env.MAIL_PASS,
   },
+  connectionTimeout: 10_000, // 10 sec
+  greetingTimeout: 10_000,
+  socketTimeout: 10_000,
+});
+
+/* ======================================================
+   🔍 VERIFY SMTP ON STARTUP
+====================================================== */
+transporter.verify((error) => {
+  if (error) {
+    console.error("❌ SMTP VERIFY FAILED:", error);
+  } else {
+    console.log("✅ SMTP SERVER READY");
+  }
 });
 
 /* ======================================================
    🔢 GENERATE LOGIN OTP
 ====================================================== */
-export const generateOTP = (): string => {
-  return otpGenerator.generate(6, {
+export const generateOTP = (): string =>
+  otpGenerator.generate(6, {
     upperCaseAlphabets: false,
     lowerCaseAlphabets: false,
     specialChars: false,
   });
-};
 
 /* ======================================================
    ✉️ SEND LOGIN OTP EMAIL
@@ -36,27 +49,16 @@ export const sendOTPEmail = async (
   email: string,
   otp: string
 ): Promise<void> => {
-  try {
-    await transporter.sendMail({
-      from: `"Yasin Digital Solutions" <${process.env.MAIL_USER}>`,
-      to: email,
-      subject: "Login OTP - Yasin Digital Solutions",
-      html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>Login Verification Code</h2>
-          <p>Your <strong>Login OTP</strong> is:</p>
-          <h1 style="letter-spacing: 4px;">${otp}</h1>
-          <p>This OTP is valid for <b>5 minutes</b>.</p>
-          <p>If you did not request this login, please ignore this email.</p>
-          <br/>
-          <p>— Team Yasin Digital Solutions</p>
-        </div>
-      `,
-    });
+  const info = await transporter.sendMail({
+    from: `"Yasin Digital Solutions" <${process.env.MAIL_USER}>`,
+    to: email,
+    subject: "Login OTP - Yasin Digital Solutions",
+    html: `
+      <h2>Your Login OTP</h2>
+      <h1>${otp}</h1>
+      <p>This OTP is valid for 5 minutes.</p>
+    `,
+  });
 
-    console.log(`✅ Login OTP sent to ${email}`);
-  } catch (error) {
-    console.error("❌ Failed to send login OTP email:", error);
-    throw new Error("Failed to send login OTP email");
-  }
+  console.log("📨 MAIL SENT:", info.messageId);
 };
