@@ -31,12 +31,12 @@ import Courses from "./components/student/Courses";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PaymentRequests from "./pages/admin/PaymentRequests";
 
-// 🔥 ADMIN COURSE PAGES
-import CoursesList from "./admin/pages/courses/CoursesList";
-import CreateCourse from "./admin/pages/courses/CreateCourse";
-import EditCourse from "./admin/pages/courses/EditCourse";
-import CourseContent from "./admin/pages/courses/CourseContent";
-import CourseStudents from "./admin/pages/courses/CourseStudents";
+// 🔥 ADMIN COURSE PAGES (CORRECT PATHS)
+import CoursesList from "./pages/admin/CoursesList";
+import CreateCourse from "./pages/admin/CreateCourse";
+import EditCourse from "./pages/admin/EditCourse";
+import CourseContent from "./pages/admin/CourseContent";
+import CourseStudents from "./pages/admin/CourseStudents";
 
 // Manager Pages
 import ManagerDashboard from "./pages/ManagerDashboard";
@@ -62,7 +62,11 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* ---------------- STUDENT ---------------- */}
-          <Route element={<ProtectedRoute allowedRoles={["STUDENT", "PUBLIC_STUDENT"]} />}>
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT", "PUBLIC_STUDENT"]} />
+            }
+          >
             <Route path="/student" element={<StudentLayout />}>
               <Route index element={<StudentDashboard />} />
               <Route path="dashboard" element={<StudentDashboard />} />
@@ -71,7 +75,10 @@ export default function App() {
               <Route path="internships" element={<Internships />} />
               <Route path="payments" element={<Payments />} />
               <Route path="materials" element={<Materials />} />
-              <Route path="materials/:materialId" element={<MaterialViewer />} />
+              <Route
+                path="materials/:materialId"
+                element={<MaterialViewer />}
+              />
             </Route>
           </Route>
 
@@ -80,14 +87,23 @@ export default function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<SuperAdminDashboard />} />
               <Route path="dashboard" element={<SuperAdminDashboard />} />
-              <Route path="payment-requests" element={<PaymentRequests />} />
+              <Route
+                path="payment-requests"
+                element={<PaymentRequests />}
+              />
 
-              {/* 🔥 COURSES MODULE (FINAL) */}
+              {/* 🔥 COURSES MODULE */}
               <Route path="courses" element={<CoursesList />} />
               <Route path="courses/create" element={<CreateCourse />} />
               <Route path="courses/:id" element={<EditCourse />} />
-              <Route path="courses/:id/content" element={<CourseContent />} />
-              <Route path="courses/:id/students" element={<CourseStudents />} />
+              <Route
+                path="courses/:id/content"
+                element={<CourseContent />}
+              />
+              <Route
+                path="courses/:id/students"
+                element={<CourseStudents />}
+              />
             </Route>
           </Route>
 
@@ -111,7 +127,10 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}>
             <Route path="/employee" element={<EmployeeLayout />}>
               <Route index element={<div>Employee Dashboard</div>} />
-              <Route path="dashboard" element={<div>Employee Dashboard</div>} />
+              <Route
+                path="dashboard"
+                element={<div>Employee Dashboard</div>}
+              />
             </Route>
           </Route>
 
