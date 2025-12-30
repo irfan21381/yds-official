@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { api as API } from "@/lib/api";
 
 export default function Partners() {
-  const [colleges, setColleges] = useState([]);
+  const [colleges, setColleges] = useState<any[]>([]);
 
   useEffect(() => {
     const loadColleges = async () => {
       try {
-        const res = await API.get("/admin/colleges"); // backend route
-        setColleges(res.data?.colleges || []);
+        // ✅ PUBLIC ROUTE (Homepage)
+        const res = await API.get("/colleges");
+        setColleges(res.data?.colleges || res.data || []);
       } catch (err) {
         console.error("Failed to load colleges:", err);
       }
@@ -23,6 +24,7 @@ export default function Partners() {
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
           Collaborated Colleges
         </h2>
+
         <p className="mt-2 text-gray-600 dark:text-gray-300">
           {colleges.length === 0
             ? "No colleges added yet."
