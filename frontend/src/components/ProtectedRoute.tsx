@@ -1,27 +1,71 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { toast } from 'sonner';
+import React, { useEffect, useRef } from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 interface ProtectedRouteProps {
-  allowedRoles?: ('SUPER_ADMIN' | 'MANAGER' | 'TEACHER' | 'STUDENT' | 'PUBLIC_STUDENT' | 'EMPLOYEE')[];
+  allowedRoles?: (
+    | "SUPER_ADMIN"
+    | "MANAGER"
+    | "TEACHER"
+    | "STUDENT"
+    | "PUBLIC_STUDENT"
+    | "EMPLOYEE"
+  )[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { isAuthenticated, isLoading, user, hasRole } = useAuth();
+  const { isAuthenticated, isLoading, hasRole } = useAuth();
 
+  // 🔥 Prevent multiple toasts
+  const authToastShown = useRef(false);
+  const roleToastShown = useRef(false);
+
+  /* =========================
+     AUTH ERROR (ONLY ONCE)
+  ========================= */
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !authToastShown.current) {
+      toast.error("You need to log in to access this page.");
+      authToastShown.current = true;
+    }
+  }, [isAuthenticated, isLoading]);
+
+  /* =========================
+     ROLE ERROR (ONLY ONCE)
+  ========================= */
+  useEffect(() => {
+    if (
+      !isLoading &&
+      isAuthenticated &&
+      allowedRoles &&
+      !hasRole(allowedRoles) &&
+      !roleToastShown.current
+    ) {
+      toast.error("You do not have permission to access this page.");
+      roleToastShown.current = true;
+    }
+  }, [isAuthenticated, isLoading, allowedRoles, hasRole]);
+
+  /* =========================
+     LOADING
+  ========================= */
   if (isLoading) {
-    return <div>Loading authentication...</div>; // Or a spinner component
+    return <div>Loading authentication...</div>;
   }
 
+  /* =========================
+     NOT AUTHENTICATED
+  ========================= */
   if (!isAuthenticated) {
-    toast.error('You need to log in to access this page.');
     return <Navigate to="/login" replace />;
   }
 
+  /* =========================
+     ROLE NOT ALLOWED
+  ========================= */
   if (allowedRoles && !hasRole(allowedRoles)) {
-    toast.error('You do not have permission to access this page.');
-    return <Navigate to="/" replace />; // Redirect to home or a permission denied page
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;
