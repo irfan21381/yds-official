@@ -1,18 +1,19 @@
 import type { Config } from "tailwindcss";
 
 const config = {
-  // Common Configuration Keys
-  darkMode: ["class"],
+  // ✅ MUST be string, NOT array
+  darkMode: "class",
+
   content: [
+    "./index.html",
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
   ],
-  // Ensures Tailwind utility classes are prefixed (e.g., tw-bg-red-500) if needed
+
   prefix: "",
 
-  // Merged and Corrected Theme Configuration
   theme: {
     container: {
       center: true,
@@ -23,12 +24,12 @@ const config = {
     },
     extend: {
       colors: {
-        // Core Colors (based on CSS variables)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -57,7 +58,7 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Custom 'sidebar' colors
+
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -69,28 +70,21 @@ const config = {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      // Keyframes and Animations for shadcn/ui components
+
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
@@ -99,7 +93,7 @@ const config = {
       },
     },
   },
-  // Merged Plugins (keeping 'tailwindcss-animate')
+
   plugins: [],
 } satisfies Config;
 
