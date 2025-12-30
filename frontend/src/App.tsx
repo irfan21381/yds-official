@@ -31,6 +31,13 @@ import Courses from "./components/student/Courses";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PaymentRequests from "./pages/admin/PaymentRequests";
 
+// 🔥 ADMIN COURSE PAGES
+import CoursesList from "./admin/pages/courses/CoursesList";
+import CreateCourse from "./admin/pages/courses/CreateCourse";
+import EditCourse from "./admin/pages/courses/EditCourse";
+import CourseContent from "./admin/pages/courses/CourseContent";
+import CourseStudents from "./admin/pages/courses/CourseStudents";
+
 // Manager Pages
 import ManagerDashboard from "./pages/ManagerDashboard";
 
@@ -74,6 +81,13 @@ export default function App() {
               <Route index element={<SuperAdminDashboard />} />
               <Route path="dashboard" element={<SuperAdminDashboard />} />
               <Route path="payment-requests" element={<PaymentRequests />} />
+
+              {/* 🔥 COURSES MODULE (FINAL) */}
+              <Route path="courses" element={<CoursesList />} />
+              <Route path="courses/create" element={<CreateCourse />} />
+              <Route path="courses/:id" element={<EditCourse />} />
+              <Route path="courses/:id/content" element={<CourseContent />} />
+              <Route path="courses/:id/students" element={<CourseStudents />} />
             </Route>
           </Route>
 
