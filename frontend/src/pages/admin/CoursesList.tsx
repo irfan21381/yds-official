@@ -1,6 +1,12 @@
 import { Link } from "react-router-dom";
 import { Plus, Users, Edit } from "lucide-react";
 
+import CourseCard from "@/admin/components/courses/CourseCard";
+
+{dummyCourses.map((course) => (
+  <CourseCard key={course.id} course={course} />
+))}
+
 const dummyCourses = [
   {
     id: "1",
