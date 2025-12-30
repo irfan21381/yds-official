@@ -1,9 +1,9 @@
 import express from "express";
-import { getAllColleges } from "../controllers/adminController";
+import { getPublicColleges } from "../controllers/collegeController";
 
 const router = express.Router();
 
-// 🌍 PUBLIC – Homepage colleges
-router.get("/", getAllColleges);
+// 🌍 PUBLIC
+router.get("/", getPublicColleges);
 
 export default router;
