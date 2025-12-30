@@ -6,6 +6,8 @@ import {
   getGlobalAnalytics,
   getAllColleges,
   getUsersByRole,
+  getAdminStats,
+  updateStats
 } from "../controllers/adminController";
 import { protect, authorize } from "../middleware/authMiddleware";
 import { ROLES } from "../constants/roles";
