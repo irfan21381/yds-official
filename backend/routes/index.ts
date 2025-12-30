@@ -5,6 +5,7 @@ import studentRoutes from "./studentRoutes";
 import teacherRoutes from "./teacherRoutes";
 import managerRoutes from "./managerRoutes";
 import adminRoutes from "./adminRoutes";
+import statsRoutes from "./statsRoutes"; // ✅ PUBLIC
 import aiRoutes from "./aiRoutes";
 import internshipRoutes from "./internshipRoutes";
 import paymentRoutes from "./paymentRoutes";
@@ -13,23 +14,20 @@ import salaryPaymentRoutes from "./salaryPaymentRoutes";
 import employeeRoutes from "./employeeRoutes";
 import contactRoutes from "./contactRoutes";
 
-// ✅ NEW: Public stats routes
-import statsRoutes from "./statsRoutes";
-
 const router = Router();
 
-// ---------------- PUBLIC ROUTES ----------------
+// 🌍 PUBLIC FIRST
 router.use("/auth", authRoutes);
 router.use("/internships", internshipRoutes);
-router.use("/stats", statsRoutes); // 🌍 PUBLIC STATS (Homepage)
+router.use("/stats", statsRoutes); // ✅ PUBLIC (NO protect)
 
-// ---------------- ROLE BASED ROUTES ----------------
+// 🔐 ROLE BASED
 router.use("/student", studentRoutes);
 router.use("/teacher", teacherRoutes);
 router.use("/manager", managerRoutes);
-router.use("/admin", adminRoutes); // 🔐 ADMIN (Protected)
+router.use("/admin", adminRoutes);
 
-// ---------------- OTHER ROUTES ----------------
+// OTHERS
 router.use("/ai", aiRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/payment-requests", paymentRequestRoutes);
@@ -37,12 +35,8 @@ router.use("/salary-payments", salaryPaymentRoutes);
 router.use("/employee", employeeRoutes);
 router.use("/contact", contactRoutes);
 
-// ---------------- ROOT HEALTH ----------------
 router.get("/", (_req, res) => {
-  res.json({
-    ok: true,
-    message: "YDS API running",
-  });
+  res.json({ ok: true, message: "YDS API running" });
 });
 
 export default router;
