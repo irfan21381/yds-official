@@ -17,5 +17,4 @@ const StatsSchema = new Schema<IStats>(
   { timestamps: true }
 );
 
-// SINGLE DOCUMENT MODEL
 export default mongoose.model<IStats>("Stats", StatsSchema);
