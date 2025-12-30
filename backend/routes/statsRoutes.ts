@@ -3,7 +3,7 @@ import { getPublicStats } from "../controllers/statsController";
 
 const router = express.Router();
 
-// 🌍 PUBLIC HOMEPAGE STATS
+// 🌍 PUBLIC – NO AUTH
 router.get("/", getPublicStats);
 
 export default router;
