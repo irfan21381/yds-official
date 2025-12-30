@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 // Import all static components
 import Hero from "../components/company/Hero";
@@ -15,71 +15,65 @@ import Testimonials from "../components/company/Testimonials";
 import Contact from "../components/company/Contact";
 import Footer from "../components/company/Footer";
 
-export default function HomePage() {
+const HomePage: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  // ----------------------------------------------------
-  // LOGIC TO REDIRECT AUTHENTICATED USERS TO DASHBOARD
-  // ----------------------------------------------------
+  // Redirect authenticated users
   useEffect(() => {
-    // 1. Wait until the global authentication check is complete
-    if (isLoading) return; 
+    if (isLoading) return;
 
-    // 2. If the user IS authenticated, redirect them based on role
     if (isAuthenticated && user) {
-      let redirectPath = '/';
+      let redirectPath = "/student";
 
-      // Determine the correct dashboard based on the user's role
       switch (user.role) {
-        case 'STUDENT':
-        case 'PUBLIC_STUDENT':
-          redirectPath = '/student';
+        case "SUPER_ADMIN":
+          redirectPath = "/admin/dashboard";
           break;
-        case 'SUPER_ADMIN':
-          redirectPath = '/admin/dashboard';
+        case "MANAGER":
+          redirectPath = "/manager/dashboard";
           break;
-        case 'MANAGER':
-          redirectPath = '/manager/dashboard';
+        case "TEACHER":
+          redirectPath = "/teacher/dashboard";
           break;
-        case 'TEACHER':
-          redirectPath = '/teacher/dashboard';
+        case "EMPLOYEE":
+          redirectPath = "/employee/dashboard";
           break;
-        case 'EMPLOYEE':
-          redirectPath = '/employee/dashboard';
-          break;
+        case "STUDENT":
+        case "PUBLIC_STUDENT":
         default:
-          redirectPath = '/student'; // Default fallback
+          redirectPath = "/student";
       }
-      
-      // Execute the redirect and prevent showing the marketing page
-      console.log(`User authenticated as ${user.role}. Redirecting to ${redirectPath}`);
+
       navigate(redirectPath, { replace: true });
     }
-    
-    // 3. If the user is NOT authenticated, the effect completes, 
-    // and they stay on this public homepage.
   }, [isAuthenticated, user, isLoading, navigate]);
 
-  // If loading, show a spinner to prevent content flicker before redirect
+  // Loading state
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen text-xl">Checking session...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center text-xl">
+        Checking session...
+      </div>
+    );
   }
-  
-  // If not authenticated (or after checking), render the public homepage content
- // If not authenticated (or after checking), render the public homepage content
-return (
-  <div className="pt-20 bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors">
-    <Hero />
-    <EduAI />
-    <About />
-    <Services />
-    <Products />
-    <Internships />
-    <Partners />
-    <Stats />
-    <Testimonials />
-    <Contact />
-    <Footer />
-  </div>
-);
+
+  // Public homepage
+  return (
+    <div className="pt-20 bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors">
+      <Hero />
+      <EduAI />
+      <About />
+      <Services />
+      <Products />
+      <Internships />
+      <Partners />
+      <Stats />
+      <Testimonials />
+      <Contact />
+      <Footer />
+    </div>
+  );
+};
+
+export default HomePage;
