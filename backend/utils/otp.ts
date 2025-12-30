@@ -1,21 +1,26 @@
-import otpGenerator from 'otp-generator';
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import otpGenerator from "otp-generator";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-// Email transporter configuration using SMTP from .env
+/* ======================================================
+   📧 SMTP TRANSPORTER (LOGIN OTP)
+====================================================== */
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: Number(process.env.EMAIL_PORT) || 465,
-  secure: Number(process.env.EMAIL_PORT) === 465, // true for 465, false for other ports
+  host: process.env.MAIL_HOST || "smtp.gmail.com",
+  port: Number(process.env.MAIL_PORT) || 587,
+  secure: Number(process.env.MAIL_PORT) === 465, // true only for 465
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Use Gmail App Password
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS, // Gmail App Password
   },
 });
 
-export const generateOTP = () => {
+/* ======================================================
+   🔢 GENERATE LOGIN OTP
+====================================================== */
+export const generateOTP = (): string => {
   return otpGenerator.generate(6, {
     upperCaseAlphabets: false,
     lowerCaseAlphabets: false,
@@ -23,19 +28,34 @@ export const generateOTP = () => {
   });
 };
 
-export const sendOTPEmail = async (email: string, otp: string) => {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'YDS EDUAI - Your OTP for Login',
-    html: `<p>Your One-Time Password (OTP) for YDS EDUAI login is: <strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>`,
-  };
-
+/* ======================================================
+   ✉️ SEND LOGIN OTP EMAIL
+====================================================== */
+export const sendOTPEmail = async (
+  email: string,
+  otp: string
+): Promise<void> => {
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`OTP sent to ${email}`);
+    await transporter.sendMail({
+      from: `"Yasin Digital Solutions" <${process.env.MAIL_USER}>`,
+      to: email,
+      subject: "Login OTP - Yasin Digital Solutions",
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>Login Verification Code</h2>
+          <p>Your <strong>Login OTP</strong> for <b>Yasin Digital Solutions</b> is:</p>
+          <h1 style="letter-spacing: 4px;">${otp}</h1>
+          <p>This OTP is valid for <b>5 minutes</b>.</p>
+          <p>If you did not request this login, please ignore this email.</p>
+          <br/>
+          <p>— Team Yasin Digital Solutions</p>
+        </div>
+      `,
+    });
+
+    console.log(`✅ LOGIN OTP sent to ${email}`);
   } catch (error) {
-    console.error(`Error sending OTP to ${email}:`, error);
-    throw new Error('Failed to send OTP email.');
+    console.error("❌ LOGIN OTP email error:", error);
+    throw new Error("Failed to send login OTP email");
   }
 };
