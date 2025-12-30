@@ -1,7 +1,6 @@
  import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import CourseForm from "@/admin/components/courses/CourseForm";
-
+import CourseForm from "@/components/superadmin/CourseForm";
 export default function EditCourse() {
   const navigate = useNavigate();
 
