@@ -67,19 +67,19 @@ export default function HomePage() {
   }
   
   // If not authenticated (or after checking), render the public homepage content
-  return (
-    <div className="pt-20">
-      <Hero />
-      <EduAI />
-      <About />
-      <Services />
-      <Products />
-      <Internships />
-      <Partners />
-      <Stats />
-      <Testimonials />
-      <Contact />
-      <Footer />
-    </div>
-  );
-}
+ // If not authenticated (or after checking), render the public homepage content
+return (
+  <div className="pt-20 bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors">
+    <Hero />
+    <EduAI />
+    <About />
+    <Services />
+    <Products />
+    <Internships />
+    <Partners />
+    <Stats />
+    <Testimonials />
+    <Contact />
+    <Footer />
+  </div>
+);
