@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTheme } from "@/context/ThemeContext";
@@ -109,18 +109,34 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
 
+  // ✅ NEW: success state
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
   const showError = (msg: string) => alert(msg);
+
+  /* =========================
+     SHOW SUCCESS ONLY ONCE
+  ========================= */
+  useEffect(() => {
+    if (loginSuccess) {
+      alert("Logged in successfully ✅");
+      setLoginSuccess(false); // 🔥 reset to avoid multiple times
+    }
+  }, [loginSuccess]);
 
   /* =========================
      PASSWORD LOGIN
   ========================= */
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     try {
       const data = await loginWithPassword(email, password);
       login(data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      setLoginSuccess(true);
       navigate(redirectByRole(data.user.role));
     } catch (err: any) {
       showError(err?.response?.data?.message || "Login failed");
@@ -134,6 +150,7 @@ export default function Login() {
   ========================= */
   const handleSendOtp = async () => {
     if (!otpEmail) return showError("Enter email");
+    if (loading) return;
 
     setLoading(true);
     try {
@@ -151,12 +168,14 @@ export default function Login() {
   ========================= */
   const handleVerifyOtp = async () => {
     if (!otpCode) return showError("Enter OTP");
+    if (loading) return;
 
     setLoading(true);
     try {
       const data = await verifyLoginOtp(otpEmail, otpCode);
       login(data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      setLoginSuccess(true);
       navigate(redirectByRole(data.user.role));
     } catch (err: any) {
       showError(err?.response?.data?.message || "OTP verification failed");
@@ -221,7 +240,10 @@ export default function Login() {
               placeholder="••••••••"
               icon={LockIcon}
             />
-            <button className="w-full bg-blue-600 text-white p-3 rounded-xl">
+            <button
+              disabled={loading}
+              className="w-full bg-blue-600 text-white p-3 rounded-xl"
+            >
               {loading ? <Loader /> : "Login"}
             </button>
           </form>
