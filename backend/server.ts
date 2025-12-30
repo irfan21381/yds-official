@@ -7,6 +7,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import mongoose from "mongoose";
+
 import routes from "./routes";
 
 const app = express();
@@ -16,7 +17,7 @@ const app = express();
 ========================================================= */
 app.use(
   cors({
-    origin: true,
+    origin: true, // allow all origins (frontend)
     credentials: true,
   })
 );
@@ -35,35 +36,47 @@ app.use(mongoSanitize());
    ⏱ Rate Limiting
 ========================================================= */
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // requests per IP
 });
 app.use(limiter);
 
 /* =========================================================
-   ❤️ Health Check
+   🌍 Root Route (Browser / Render Check)
+========================================================= */
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({
+    ok: true,
+    message: "YDS Backend is running 🚀",
+  });
+});
+
+/* =========================================================
+   ❤️ API Health Check
 ========================================================= */
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ ok: true });
 });
 
 /* =========================================================
-   🚏 Routes
+   🚏 API Routes
 ========================================================= */
 app.use("/api", routes);
 
 /* =========================================================
-   🗄 MongoDB
+   🗄 MongoDB Connection
 ========================================================= */
 const MONGO_URI =
-  process.env.MONGO_URI ?? "mongodb://127.0.0.1:27017/yds";
+  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/yds";
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err: Error) =>
-    console.error("❌ MongoDB connection failed:", err.message)
-  );
+  .then(() => {
+    console.log("✅ MongoDB connected");
+  })
+  .catch((err: Error) => {
+    console.error("❌ MongoDB connection failed:", err.message);
+  });
 
 /* =========================================================
    🚀 Start Server
