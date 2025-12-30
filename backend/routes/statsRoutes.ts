@@ -1,9 +1,9 @@
-import { Router } from "express";
-import { getPublicStats } from "../controllers/statsController";
+import express from "express";
+import { getGlobalAnalytics } from "../controllers/adminController";
 
-const router = Router();
+const router = express.Router();
 
-// 🌍 PUBLIC STATS
-router.get("/", getPublicStats);
+// 🌍 PUBLIC READ-ONLY STATS
+router.get("/", getGlobalAnalytics);
 
 export default router;
