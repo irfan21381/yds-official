@@ -4,33 +4,48 @@ import { motion } from "framer-motion";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { redirectByRole } from "@/utils/redirectByRole";
+import { loginWithPassword, sendLoginOtp, verifyLoginOtp } from "@/api/auth";
 
-// Icons
-const UserIcon = (props: any) => <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>;
-const MailIcon = (props: any) => <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>;
-const LockIcon = (props: any) => <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
-const CheckIcon = (props: any) => <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>;
-const LoaderIcon = () => <span className="animate-spin">⏳</span>;
+/* =========================
+   ICONS
+========================= */
+const UserIcon = (props: any) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <circle cx="12" cy="7" r="4" />
+    <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+  </svg>
+);
 
-// API
-import {
-  loginWithPassword,
-  sendLoginOtp,
-  verifyLoginOtp,
-} from "@/api/auth";
+const MailIcon = (props: any) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="m22 7-10 6L2 7" />
+  </svg>
+);
 
-// Animations
-const cardVariants = {
-  initial: { opacity: 0, y: 30 },
-  animate: { opacity: 1, y: 0 },
-};
+const LockIcon = (props: any) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <rect x="3" y="11" width="18" height="11" rx="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
 
-// ✅ FIXED INPUT COMPONENT
-type InputFieldProps = {
+const CheckIcon = (props: any) => (
+  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+const Loader = () => <span className="animate-spin">⏳</span>;
+
+/* =========================
+   INPUT COMPONENT
+========================= */
+type InputProps = {
   label: string;
   type: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (v: string) => void;
   placeholder: string;
   icon?: any;
   disabled?: boolean;
@@ -44,7 +59,7 @@ const InputField = ({
   placeholder,
   icon: Icon,
   disabled = false,
-}: InputFieldProps) => {
+}: InputProps) => {
   const { dark } = useTheme();
 
   return (
@@ -56,7 +71,7 @@ const InputField = ({
         <input
           type={type}
           value={value}
-          onChange={(e) => onChange(e.target.value)} // ✅ FIX
+          onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
           className={`w-full pl-10 p-3 rounded-xl border outline-none ${
@@ -73,6 +88,9 @@ const InputField = ({
   );
 };
 
+/* =========================
+   LOGIN PAGE
+========================= */
 export default function Login() {
   const navigate = useNavigate();
   const { dark } = useTheme();
@@ -80,9 +98,11 @@ export default function Login() {
 
   const [tab, setTab] = useState<"password" | "otp">("password");
 
+  // Password login
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // OTP login
   const [otpEmail, setOtpEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -91,7 +111,9 @@ export default function Login() {
 
   const showError = (msg: string) => alert(msg);
 
-  // PASSWORD LOGIN
+  /* =========================
+     PASSWORD LOGIN
+  ========================= */
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -107,36 +129,51 @@ export default function Login() {
     }
   };
 
-  // SEND OTP
+  /* =========================
+     SEND OTP
+  ========================= */
   const handleSendOtp = async () => {
     if (!otpEmail) return showError("Enter email");
+
+    setLoading(true);
     try {
       await sendLoginOtp(otpEmail);
       setOtpSent(true);
-    } catch {
-      showError("OTP send failed");
+    } catch (err: any) {
+      showError(err?.response?.data?.message || "OTP send failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // VERIFY OTP
+  /* =========================
+     VERIFY OTP
+  ========================= */
   const handleVerifyOtp = async () => {
     if (!otpCode) return showError("Enter OTP");
+
+    setLoading(true);
     try {
       const data = await verifyLoginOtp(otpEmail, otpCode);
       login(data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       navigate(redirectByRole(data.user.role));
-    } catch {
-      showError("OTP verification failed");
+    } catch (err: any) {
+      showError(err?.response?.data?.message || "OTP verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${dark ? "bg-gray-900" : "bg-gray-100"}`}>
+    <div
+      className={`min-h-screen flex items-center justify-center ${
+        dark ? "bg-gray-900" : "bg-gray-100"
+      }`}
+    >
       <motion.div
-        variants={cardVariants}
-        initial="initial"
-        animate="animate"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg"
       >
         <div className="flex justify-center mb-4">
@@ -148,10 +185,20 @@ export default function Login() {
         </h2>
 
         <div className="flex mb-6">
-          <button className={`flex-1 p-2 ${tab === "password" && "bg-blue-600 text-white"}`} onClick={() => setTab("password")}>
+          <button
+            className={`flex-1 p-2 ${
+              tab === "password" && "bg-blue-600 text-white"
+            }`}
+            onClick={() => setTab("password")}
+          >
             Password
           </button>
-          <button className={`flex-1 p-2 ${tab === "otp" && "bg-blue-600 text-white"}`} onClick={() => setTab("otp")}>
+          <button
+            className={`flex-1 p-2 ${
+              tab === "otp" && "bg-blue-600 text-white"
+            }`}
+            onClick={() => setTab("otp")}
+          >
             OTP
           </button>
         </div>
@@ -175,7 +222,7 @@ export default function Login() {
               icon={LockIcon}
             />
             <button className="w-full bg-blue-600 text-white p-3 rounded-xl">
-              {loading ? <LoaderIcon /> : "Login"}
+              {loading ? <Loader /> : "Login"}
             </button>
           </form>
         ) : (
@@ -191,8 +238,16 @@ export default function Login() {
             />
 
             {!otpSent ? (
-              <button onClick={handleSendOtp} className="w-full bg-green-600 text-white p-3 rounded-xl">
-                Send OTP
+              <button
+                onClick={handleSendOtp}
+                disabled={loading}
+                className={`w-full p-3 rounded-xl text-white ${
+                  loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600"
+                }`}
+              >
+                {loading ? "Sending OTP... Please wait" : "Send OTP"}
               </button>
             ) : (
               <>
@@ -204,8 +259,12 @@ export default function Login() {
                   placeholder="123456"
                   icon={CheckIcon}
                 />
-                <button onClick={handleVerifyOtp} className="w-full bg-blue-600 text-white p-3 rounded-xl">
-                  Verify OTP
+                <button
+                  onClick={handleVerifyOtp}
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white p-3 rounded-xl"
+                >
+                  {loading ? <Loader /> : "Verify OTP"}
                 </button>
               </>
             )}
