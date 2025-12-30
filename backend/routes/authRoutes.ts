@@ -1,25 +1,32 @@
 import { Router } from "express";
-import { 
-  register as registerUser,
-  login as loginUser,
+import {
+  register,
+  login,
   sendOtp,
   verifyOtp,
   changePassword,
   resetPasswordWithOTP,
 } from "../controllers/authController";
-
 import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
 
-// Public
-router.post("/register", registerUser);
-router.post("/login", loginUser);
-router.post("/send-otp", sendOtp);
-router.post("/verify-otp", verifyOtp);
-router.post("/reset-password", resetPasswordWithOTP); // Reset password with OTP (forgot password flow)
+/* =========================
+   PUBLIC ROUTES
+========================= */
+router.post("/register", register);
+router.post("/login", login);
 
-// Protected
-router.post("/change-password", protect, changePassword); // Change password when logged in
+// 🔥 OTP LOGIN (EMAIL BASED)
+router.post("/send-otp", sendOtp);       // SEND OTP TO EMAIL
+router.post("/verify-otp", verifyOtp);   // VERIFY OTP
+
+// Forgot password (OTP based)
+router.post("/reset-password", resetPasswordWithOTP);
+
+/* =========================
+   PROTECTED ROUTES
+========================= */
+router.post("/change-password", protect, changePassword);
 
 export default router;
