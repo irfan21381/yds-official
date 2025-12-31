@@ -36,24 +36,45 @@ const sendTokenResponse = (user: any, statusCode: number, res: Response) => {
 };
 
 /* ======================================================
-   📝 Register
+   📝 Register (FINAL FIXED)
 ====================================================== */
-export const register = async (req: Request, res: Response, next: NextFunction) => {
+export const register = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { email, password, role, collegeId, isPublicStudent } = req.body as {
+    console.log("REGISTER BODY:", req.body); // 🔍 DEBUG (can remove later)
+
+    const {
+      email,
+      password,
+      role = "STUDENT",          // ✅ DEFAULT ROLE
+      collegeId,
+      isPublicStudent = true,    // ✅ DEFAULT PUBLIC
+    } = req.body as {
       email: string;
       password: string;
-      role: string;
+      role?: string;
       collegeId?: string;
       isPublicStudent?: boolean;
     };
 
-    let user = await User.findOne({ email });
-    if (user) throw new CustomError("User already exists", 400);
+    if (!email || !password) {
+      throw new CustomError("Email and password are required", 400);
+    }
 
+    let user = await User.findOne({ email });
+    if (user) {
+      throw new CustomError("User already exists", 400);
+    }
+
+    // ✅ Check college ONLY if provided
     if (collegeId && role !== "SUPER_ADMIN") {
       const college = await College.findById(collegeId);
-      if (!college) throw new CustomError("College not found", 404);
+      if (!college) {
+        throw new CustomError("College not found", 404);
+      }
     }
 
     user = await User.create({
@@ -64,14 +85,16 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       isVerified: false,
     });
 
+    // ✅ Create student profile
     if (role === "STUDENT") {
       await Student.create({
         userId: user._id,
         collegeId: isPublicStudent ? undefined : user.collegeId,
-        isPublic: isPublicStudent || false,
+        isPublic: isPublicStudent,
       });
     }
 
+    // ✅ Create teacher profile
     if (role === "TEACHER") {
       await Teacher.create({
         userId: user._id,
@@ -84,6 +107,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
+    // ⚠️ Comment temporarily if email config not ready
     await sendOTPEmail(user.email, otp);
 
     return res.status(201).json({
@@ -127,12 +151,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 /* ======================================================
-   🔢 Send OTP (FIXED – NO TIMEOUT)
+   🔢 Send OTP
 ====================================================== */
 export const sendOtp = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = req.body as { email: string };
-    console.log("➡️ send-otp hit:", email);
 
     const user = await User.findOne({ email });
     if (!user) throw new CustomError("User not found", 404);
@@ -144,12 +167,10 @@ export const sendOtp = async (req: Request, res: Response, next: NextFunction) =
 
     await sendOTPEmail(user.email, otp);
 
-    console.log("✅ OTP generated:", otp);
-
     return res.status(200).json({
       success: true,
       message: "OTP generated (DEV MODE)",
-      otp, // ⚠️ DEV ONLY
+      otp,
     });
   } catch (err) {
     next(err);
@@ -186,7 +207,7 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
 };
 
 /* ======================================================
-   🔁 Reset Password (Forgot Password)
+   🔁 Reset Password
 ====================================================== */
 export const resetPasswordWithOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -213,16 +234,14 @@ export const resetPasswordWithOTP = async (req: Request, res: Response, next: Ne
 };
 
 /* ======================================================
-   🔒 Change Password (Logged in)
+   🔒 Change Password
 ====================================================== */
 export const changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id;
     const { newPassword } = req.body as { newPassword: string };
 
-    if (!userId) {
-      throw new CustomError("User not authenticated", 401);
-    }
+    if (!userId) throw new CustomError("User not authenticated", 401);
 
     const user = await User.findById(userId).select("+password");
     if (!user) throw new CustomError("User not found", 404);
