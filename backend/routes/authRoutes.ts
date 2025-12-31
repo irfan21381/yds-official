@@ -4,8 +4,8 @@ import {
   login,
   sendOtp,
   verifyOtp,
-  changePassword,
   resetPasswordWithOTP,
+  changePassword,
 } from "../controllers/authController";
 import { protect } from "../middleware/authMiddleware";
 
@@ -17,11 +17,11 @@ const router = Router();
 router.post("/register", register);
 router.post("/login", login);
 
-// 🔥 OTP LOGIN (EMAIL BASED)
-router.post("/send-otp", sendOtp);       // SEND OTP TO EMAIL
-router.post("/verify-otp", verifyOtp);   // VERIFY OTP
+// OTP LOGIN
+router.post("/send-otp", sendOtp);
+router.post("/verify-otp", verifyOtp);
 
-// Forgot password (OTP based)
+// Forgot password
 router.post("/reset-password", resetPasswordWithOTP);
 
 /* =========================
