@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import bcrypt from "bcryptjs";
 import User from "../models/User";
 import College from "../models/College";
 import Student from "../models/Student";
@@ -20,7 +19,11 @@ interface AuthenticatedRequest extends Request {
    🔐 Helper: Send JWT
 ====================================================== */
 const sendTokenResponse = (user: any, statusCode: number, res: Response) => {
-  const token = generateToken(user._id, user.role, user.collegeId?.toString());
+  const token = generateToken(
+    user._id,
+    user.role,
+    user.collegeId?.toString()
+  );
 
   res.status(statusCode).json({
     success: true,
@@ -36,7 +39,7 @@ const sendTokenResponse = (user: any, statusCode: number, res: Response) => {
 };
 
 /* ======================================================
-   📝 Register (FINAL FIXED)
+   📝 Register (FINAL – STABLE)
 ====================================================== */
 export const register = async (
   req: Request,
@@ -44,21 +47,13 @@ export const register = async (
   next: NextFunction
 ) => {
   try {
-    console.log("REGISTER BODY:", req.body); // 🔍 DEBUG (can remove later)
-
     const {
       email,
       password,
-      role = "STUDENT",          // ✅ DEFAULT ROLE
+      role = "STUDENT",
       collegeId,
-      isPublicStudent = true,    // ✅ DEFAULT PUBLIC
-    } = req.body as {
-      email: string;
-      password: string;
-      role?: string;
-      collegeId?: string;
-      isPublicStudent?: boolean;
-    };
+      isPublicStudent = true,
+    } = req.body;
 
     if (!email || !password) {
       throw new CustomError("Email and password are required", 400);
@@ -69,12 +64,9 @@ export const register = async (
       throw new CustomError("User already exists", 400);
     }
 
-    // ✅ Check college ONLY if provided
     if (collegeId && role !== "SUPER_ADMIN") {
       const college = await College.findById(collegeId);
-      if (!college) {
-        throw new CustomError("College not found", 404);
-      }
+      if (!college) throw new CustomError("College not found", 404);
     }
 
     user = await User.create({
@@ -85,7 +77,6 @@ export const register = async (
       isVerified: false,
     });
 
-    // ✅ Create student profile
     if (role === "STUDENT") {
       await Student.create({
         userId: user._id,
@@ -94,7 +85,6 @@ export const register = async (
       });
     }
 
-    // ✅ Create teacher profile
     if (role === "TEACHER") {
       await Teacher.create({
         userId: user._id,
@@ -107,13 +97,15 @@ export const register = async (
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
-    // ⚠️ Comment temporarily if email config not ready
-    await sendOTPEmail(user.email, otp);
+    // 🔥 NON-BLOCKING EMAIL (NO TIMEOUT)
+    sendOTPEmail(user.email, otp).catch((err) => {
+      console.error("OTP EMAIL FAILED (register):", err);
+    });
 
     return res.status(201).json({
       success: true,
-      message: "Registered successfully (DEV MODE)",
-      otp, // ⚠️ DEV ONLY
+      message: "Registered successfully. OTP sent to email.",
+      otp, // DEV ONLY
     });
   } catch (err) {
     next(err);
@@ -121,14 +113,11 @@ export const register = async (
 };
 
 /* ======================================================
-   🔑 Login
+   🔑 Login (Password)
 ====================================================== */
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body as {
-      email: string;
-      password: string;
-    };
+    const { email, password } = req.body;
 
     if (!email || !password) {
       throw new CustomError("Email & password required", 400);
@@ -151,11 +140,16 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 /* ======================================================
-   🔢 Send OTP
+   🔢 Send OTP (LOGIN / RESEND) – FINAL FIX
 ====================================================== */
-export const sendOtp = async (req: Request, res: Response, next: NextFunction) => {
+export const sendOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { email } = req.body as { email: string };
+    const { email } = req.body;
+    if (!email) throw new CustomError("Email required", 400);
 
     const user = await User.findOne({ email });
     if (!user) throw new CustomError("User not found", 404);
@@ -165,12 +159,15 @@ export const sendOtp = async (req: Request, res: Response, next: NextFunction) =
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
-    await sendOTPEmail(user.email, otp);
+    // 🔥 NON-BLOCKING EMAIL
+    sendOTPEmail(user.email, otp).catch((err) => {
+      console.error("OTP EMAIL FAILED (sendOtp):", err);
+    });
 
     return res.status(200).json({
       success: true,
-      message: "OTP generated (DEV MODE)",
-      otp,
+      message: "OTP sent successfully",
+      otp, // DEV ONLY
     });
   } catch (err) {
     next(err);
@@ -180,9 +177,13 @@ export const sendOtp = async (req: Request, res: Response, next: NextFunction) =
 /* ======================================================
    ✅ Verify OTP
 ====================================================== */
-export const verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
+export const verifyOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { email, otp } = req.body as { email: string; otp: string };
+    const { email, otp } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) throw new CustomError("User not found", 404);
@@ -207,41 +208,18 @@ export const verifyOtp = async (req: Request, res: Response, next: NextFunction)
 };
 
 /* ======================================================
-   🔁 Reset Password
-====================================================== */
-export const resetPasswordWithOTP = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { email, otp, newPassword } = req.body as {
-      email: string;
-      otp: string;
-      newPassword: string;
-    };
-
-    const user = await User.findOne({ email });
-    if (!user) throw new CustomError("User not found", 404);
-
-    if (user.otpSecret !== otp) throw new CustomError("Invalid OTP", 400);
-
-    user.password = newPassword;
-    user.otpSecret = undefined;
-    user.otpExpires = undefined;
-    await user.save();
-
-    res.json({ success: true, message: "Password reset successful" });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* ======================================================
    🔒 Change Password
 ====================================================== */
-export const changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const changePassword = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
-    const { newPassword } = req.body as { newPassword: string };
+    const { newPassword } = req.body;
 
-    if (!userId) throw new CustomError("User not authenticated", 401);
+    if (!userId) throw new CustomError("Not authenticated", 401);
 
     const user = await User.findById(userId).select("+password");
     if (!user) throw new CustomError("User not found", 404);
