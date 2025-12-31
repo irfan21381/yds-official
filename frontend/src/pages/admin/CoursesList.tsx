@@ -3,10 +3,7 @@ import { Plus, Users, Edit } from "lucide-react";
 
 import CourseCard from "@/components/superadmin/CourseCard";
 
-{dummyCourses.map((course) => (
-  <CourseCard key={course.id} course={course} />
-))}
-
+// ✅ 1. DATA FIRST (TOP LEVEL)
 const dummyCourses = [
   {
     id: "1",
@@ -41,6 +38,7 @@ export default function CoursesList() {
             className="bg-white rounded-xl shadow-sm border p-5 space-y-3"
           >
             <h2 className="text-lg font-semibold">{course.title}</h2>
+
             <p className="text-sm text-gray-500">
               {course.category} • {course.level}
             </p>
