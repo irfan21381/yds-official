@@ -17,11 +17,8 @@ const router = Router();
 router.post("/register", register);
 router.post("/login", login);
 
-// OTP LOGIN
 router.post("/send-otp", sendOtp);
 router.post("/verify-otp", verifyOtp);
-
-// Forgot password
 router.post("/reset-password", resetPasswordWithOTP);
 
 /* =========================
