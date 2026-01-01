@@ -1,116 +1,99 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+
+import { verifyLoginOtp, sendLoginOtp } from "@/api/auth";
 import { useAuth } from "@/context/AuthContext";
+import { redirectByRole } from "@/utils/redirectByRole";
 
 export default function VerifyOtp() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
 
-  // email can come from register/login page via state
-  const email = (location.state as any)?.email || "";
+  // ✅ Email from Register page
+  const email = location.state?.email;
 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 🛑 If user directly opens page
+  if (!email) {
+    navigate("/register");
+    return null;
+  }
 
-    if (!email) {
-      toast.error("Email missing. Please login again.");
-      navigate("/login");
-      return;
-    }
-
-    if (otp.length !== 6) {
-      toast.error("Enter 6 digit OTP");
-      return;
-    }
+  /* =========================
+     VERIFY OTP
+  ========================= */
+  const handleVerify = async () => {
+    if (!otp) return toast.error("Enter OTP");
+    if (loading) return;
 
     setLoading(true);
     try {
-      const res = await api.post("/auth/verify-otp", {
-        email,
-        otp,
-      });
+      const data = await verifyLoginOtp(email, otp);
+      await login(data.token);
 
-      const token = res.data?.token;
-      if (!token) {
-        toast.error("Verification failed");
-        return;
-      }
-
-      // 🔥 Save token + load user
-      await login(token);
-
-      toast.success("OTP verified successfully!");
-
-      // 🔀 Role-based redirect
-      const role = res.data?.user?.role;
-      if (role === "SUPER_ADMIN") navigate("/admin");
-      else if (role === "MANAGER") navigate("/manager");
-      else if (role === "TEACHER") navigate("/teacher");
-      else navigate("/student");
+      toast.success("Account verified & logged in");
+      navigate(redirectByRole(data.user.role));
     } catch (err: any) {
-      console.error(err);
-      toast.error(
-        err?.response?.data?.message || "Invalid or expired OTP"
-      );
+      toast.error(err?.response?.data?.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
   };
 
+  /* =========================
+     RESEND OTP
+  ========================= */
+  const handleResend = async () => {
+    try {
+      await sendLoginOtp(email);
+      toast.success("OTP resent to email");
+    } catch {
+      toast.error("Failed to resend OTP");
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md p-8 rounded-2xl bg-white/90 dark:bg-gray-900 border shadow-xl"
+        className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg"
       >
-        <h2 className="text-2xl font-semibold text-center mb-2">
+        <h2 className="text-2xl font-bold text-center text-blue-600 mb-4">
           Verify OTP
         </h2>
 
-        <p className="text-sm text-center text-gray-600 mb-6">
-          Enter the 6-digit OTP sent to  
-          <br />
-          <span className="font-medium">{email}</span>
+        <p className="text-sm text-center mb-4 text-gray-500">
+          OTP sent to <b>{email}</b>
         </p>
 
-        <form onSubmit={handleVerify} className="space-y-4">
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-            className="w-full text-center tracking-[0.4em] text-2xl p-4 rounded-lg border bg-white dark:bg-gray-800"
-            placeholder="______"
-          />
+        <input
+          type="text"
+          placeholder="Enter 6-digit OTP"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+          className="w-full p-3 rounded-xl border mb-4 dark:bg-gray-700 dark:text-white"
+        />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60"
-          >
-            {loading ? "Verifying..." : "Verify OTP"}
-          </button>
-        </form>
+        <button
+          onClick={handleVerify}
+          disabled={loading}
+          className="w-full bg-blue-600 text-white p-3 rounded-xl mb-3"
+        >
+          {loading ? "Verifying..." : "Verify OTP"}
+        </button>
 
-        <div className="mt-4 text-sm text-center">
-          Didn’t receive OTP?{" "}
-          <Link
-            to="/login"
-            className="text-blue-600 hover:underline"
-          >
-            Resend OTP
-          </Link>
-        </div>
+        <button
+          onClick={handleResend}
+          className="w-full text-sm text-blue-600"
+        >
+          Resend OTP
+        </button>
       </motion.div>
     </div>
   );
