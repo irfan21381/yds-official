@@ -1,13 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 
-// ---------------- PUBLIC ----------------
+/* ================= PUBLIC ================= */
 import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
-import VerifyOtp from "./pages/VerifyOtp"; // ✅ FIXED: IMPORT ADDED
+import VerifyOtp from "./pages/VerifyOtp";
+import ForceChangePassword from "./pages/ForceChangePassword";
 
-// ---------------- LAYOUTS ----------------
+/* ================= LAYOUTS ================= */
 import MainLayout from "./layout/MainLayout";
 import StudentLayout from "./layout/StudentLayout";
 import AdminLayout from "./layout/AdminLayout";
@@ -15,7 +16,7 @@ import ManagerLayout from "./layout/ManagerLayout";
 import TeacherLayout from "./layout/TeacherLayout";
 import EmployeeLayout from "./layout/EmployeeLayout";
 
-// ---------------- STUDENT ----------------
+/* ================= STUDENT ================= */
 import StudentDashboard from "./components/student/Dashboard";
 import Profile from "./components/student/Profile";
 import Internships from "./components/student/Internships";
@@ -24,30 +25,30 @@ import Materials from "./pages/Materials";
 import MaterialViewer from "./pages/MaterialViewer";
 import Courses from "./components/student/Courses";
 
-// ---------------- ADMIN ----------------
+/* ================= ADMIN ================= */
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PaymentRequests from "./pages/admin/PaymentRequests";
 
-// ---------------- ADMIN COURSES ----------------
+/* ================= ADMIN COURSES ================= */
 import CoursesList from "./pages/admin/CoursesList";
 import CreateCourse from "./pages/admin/CreateCourse";
 import EditCourse from "./pages/admin/EditCourse";
 import CourseContent from "./pages/admin/CourseContent";
 import CourseStudents from "./pages/admin/CourseStudents";
 
-// ---------------- MANAGER ----------------
+/* ================= MANAGER ================= */
 import ManagerDashboard from "./pages/ManagerDashboard";
 
-// ---------------- TEACHER ----------------
+/* ================= TEACHER ================= */
 import TeacherDashboard from "./pages/TeacherDashboard";
 
-// ---------------- AUTH ----------------
+/* ================= AUTH ================= */
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   return (
     <Routes>
-      {/* ============== PUBLIC ============== */}
+      {/* ========== PUBLIC ========== */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
       </Route>
@@ -55,9 +56,15 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} /> {/* ✅ WORKING */}
+      <Route path="/verify-otp" element={<VerifyOtp />} />
 
-      {/* ============== STUDENT ============== */}
+      {/* 🔐 TEMP PASSWORD FLOW */}
+      <Route
+        path="/force-change-password"
+        element={<ForceChangePassword />}
+      />
+
+      {/* ========== STUDENT ========== */}
       <Route
         element={
           <ProtectedRoute allowedRoles={["STUDENT", "PUBLIC_STUDENT"]} />
@@ -78,7 +85,7 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ============== ADMIN (SUPER ADMIN) ============== */}
+      {/* ========== SUPER ADMIN ========== */}
       <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<SuperAdminDashboard />} />
@@ -102,7 +109,7 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ============== MANAGER ============== */}
+      {/* ========== MANAGER ========== */}
       <Route element={<ProtectedRoute allowedRoles={["MANAGER"]} />}>
         <Route path="/manager" element={<ManagerLayout />}>
           <Route index element={<ManagerDashboard />} />
@@ -110,7 +117,7 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ============== TEACHER ============== */}
+      {/* ========== TEACHER ========== */}
       <Route element={<ProtectedRoute allowedRoles={["TEACHER"]} />}>
         <Route path="/teacher" element={<TeacherLayout />}>
           <Route index element={<TeacherDashboard />} />
@@ -118,7 +125,7 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ============== EMPLOYEE ============== */}
+      {/* ========== EMPLOYEE ========== */}
       <Route element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}>
         <Route path="/employee" element={<EmployeeLayout />}>
           <Route index element={<div>Employee Dashboard</div>} />
@@ -129,7 +136,7 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ============== FALLBACK ============== */}
+      {/* ========== FALLBACK ========== */}
       <Route
         path="*"
         element={
