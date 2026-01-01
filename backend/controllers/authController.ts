@@ -4,7 +4,6 @@ import College from "../models/College";
 import Student from "../models/Student";
 import Teacher from "../models/Teacher";
 import { generateToken } from "../utils/jwt";
-import { generateOTP, sendOTPEmail } from "../utils/otp";
 import { CustomError } from "../utils/errorHandler";
 
 /* ======================================================
@@ -40,15 +39,15 @@ const sendTokenResponse = (
       email: user.email,
       role: user.role,
       collegeId: user.collegeId,
-      isVerified: user.isVerified,
+      isTempPassword: user.isTempPassword, // 🔥 IMPORTANT
     },
   });
 };
 
 /* ======================================================
-   📝 REGISTER
+   🧑‍💼 ADMIN CREATE USER (TEMP PASSWORD)
 ====================================================== */
-export const register = async (
+export const adminCreateUser = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -56,22 +55,20 @@ export const register = async (
   try {
     const {
       email,
-      password,
       role = "STUDENT",
       collegeId,
       isPublicStudent = true,
     } = req.body;
 
-    if (!email || !password) {
-      throw new CustomError("Email and password are required", 400);
+    if (!email) {
+      throw new CustomError("Email is required", 400);
     }
 
-    let user = await User.findOne({ email });
-    if (user) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       throw new CustomError("User already exists", 400);
     }
 
-    // Validate college if provided
     if (collegeId && role !== "SUPER_ADMIN") {
       const college = await College.findById(collegeId);
       if (!college) {
@@ -79,15 +76,18 @@ export const register = async (
       }
     }
 
-    user = await User.create({
+    // 🔐 Generate TEMP password (simple + free)
+    const tempPassword = Math.random().toString(36).slice(-8);
+
+    const user = await User.create({
       email,
-      password,
+      password: tempPassword,
       role,
       collegeId: collegeId || undefined,
-      isVerified: false,
+      isVerified: true,
+      isTempPassword: true, // 🔥 FORCE CHANGE
     });
 
-    // Create role profile
     if (role === "STUDENT") {
       await Student.create({
         userId: user._id,
@@ -103,21 +103,13 @@ export const register = async (
       });
     }
 
-    // Generate OTP
-    const otp = generateOTP();
-    user.otpSecret = otp;
-    user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
-    await user.save();
-
-    // 🔥 NON-BLOCKING EMAIL (Render safe)
-    sendOTPEmail(user.email, otp).catch((err) => {
-      console.error("OTP EMAIL FAILED (register):", err);
-    });
-
     res.status(201).json({
       success: true,
-      message: "Registered successfully. OTP sent to email.",
-      otp, // ⚠️ DEV ONLY
+      message: "User created successfully",
+      credentials: {
+        email,
+        password: tempPassword, // ⚠️ ADMIN WILL SHARE MANUALLY
+      },
     });
   } catch (err) {
     next(err);
@@ -125,7 +117,7 @@ export const register = async (
 };
 
 /* ======================================================
-   🔑 LOGIN (PASSWORD)
+   🔑 LOGIN
 ====================================================== */
 export const login = async (
   req: Request,
@@ -144,13 +136,18 @@ export const login = async (
       throw new CustomError("Invalid credentials", 401);
     }
 
-    const isMatch = await (user as any).matchPassword(password);
+    const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       throw new CustomError("Invalid credentials", 401);
     }
 
-    if (!user.isVerified) {
-      throw new CustomError("Account not verified", 403);
+    // 🔥 FORCE PASSWORD CHANGE
+    if (user.isTempPassword) {
+      return res.status(200).json({
+        success: true,
+        mustChangePassword: true,
+        userId: user._id,
+      });
     }
 
     sendTokenResponse(user, 200, res);
@@ -160,126 +157,38 @@ export const login = async (
 };
 
 /* ======================================================
-   🔢 SEND OTP (LOGIN / RESEND)
+   🔒 FORCE CHANGE PASSWORD (FIRST LOGIN)
 ====================================================== */
-export const sendOtp = async (
-  req: Request,
+export const forceChangePassword = async (
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      throw new CustomError("Email required", 400);
+    const userId = req.user?.id;
+    const { newPassword } = req.body;
+
+    if (!userId || !newPassword) {
+      throw new CustomError("Invalid request", 400);
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findById(userId).select("+password");
     if (!user) {
       throw new CustomError("User not found", 404);
-    }
-
-    const otp = generateOTP();
-    user.otpSecret = otp;
-    user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
-    await user.save();
-
-    // 🔥 NON-BLOCKING EMAIL
-    sendOTPEmail(user.email, otp).catch((err) => {
-      console.error("OTP EMAIL FAILED (sendOtp):", err);
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "OTP sent successfully",
-      otp, // ⚠️ DEV ONLY
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* ======================================================
-   ✅ VERIFY OTP (LOGIN / REGISTER)
-====================================================== */
-export const verifyOtp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { email, otp } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      throw new CustomError("User not found", 404);
-    }
-
-    if (!user.otpSecret || user.otpSecret !== otp) {
-      throw new CustomError("Invalid OTP", 400);
-    }
-
-    if (user.otpExpires && user.otpExpires < new Date()) {
-      throw new CustomError("OTP expired", 400);
-    }
-
-    user.otpSecret = undefined;
-    user.otpExpires = undefined;
-    user.isVerified = true;
-    await user.save();
-
-    sendTokenResponse(user, 200, res);
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* ======================================================
-   🔁 RESET PASSWORD (FORGOT PASSWORD)
-====================================================== */
-export const resetPasswordWithOTP = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { email, otp, newPassword } = req.body;
-
-    if (!email || !otp || !newPassword) {
-      throw new CustomError(
-        "Email, OTP and new password required",
-        400
-      );
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      throw new CustomError("User not found", 404);
-    }
-
-    if (!user.otpSecret || user.otpSecret !== otp) {
-      throw new CustomError("Invalid OTP", 400);
-    }
-
-    if (user.otpExpires && user.otpExpires < new Date()) {
-      throw new CustomError("OTP expired", 400);
     }
 
     user.password = newPassword;
-    user.otpSecret = undefined;
-    user.otpExpires = undefined;
+    user.isTempPassword = false;
     await user.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Password reset successful",
-    });
+    sendTokenResponse(user, 200, res);
   } catch (err) {
     next(err);
   }
 };
 
 /* ======================================================
-   🔒 CHANGE PASSWORD (LOGGED IN)
+   🔒 CHANGE PASSWORD (NORMAL)
 ====================================================== */
 export const changePassword = async (
   req: AuthenticatedRequest,
@@ -290,8 +199,8 @@ export const changePassword = async (
     const userId = req.user?.id;
     const { newPassword } = req.body;
 
-    if (!userId) {
-      throw new CustomError("User not authenticated", 401);
+    if (!userId || !newPassword) {
+      throw new CustomError("Invalid request", 400);
     }
 
     const user = await User.findById(userId).select("+password");
