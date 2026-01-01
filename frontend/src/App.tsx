@@ -5,7 +5,7 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
-
+import VerifyOtp from "./pages/VerifyOtp"; // ✅ FIXED: IMPORT ADDED
 
 // ---------------- LAYOUTS ----------------
 import MainLayout from "./layout/MainLayout";
@@ -55,7 +55,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
+      <Route path="/verify-otp" element={<VerifyOtp />} /> {/* ✅ WORKING */}
 
       {/* ============== STUDENT ============== */}
       <Route
@@ -88,7 +88,6 @@ export default function App() {
             element={<PaymentRequests />}
           />
 
-          {/* COURSES */}
           <Route path="courses" element={<CoursesList />} />
           <Route path="courses/create" element={<CreateCourse />} />
           <Route path="courses/:id" element={<EditCourse />} />
