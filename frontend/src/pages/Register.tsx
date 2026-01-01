@@ -20,7 +20,6 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 🔎 Basic validation
     if (!form.email || !form.password) {
       toast.error("Email and password are required");
       return;
@@ -33,26 +32,22 @@ export default function Register() {
 
     setLoading(true);
     try {
-      // ✅ FINAL PAYLOAD (MATCHES BACKEND)
-      const payload = {
+      await registerStudent({
         email: form.email,
         password: form.password,
         role: "STUDENT",
         isPublicStudent: true,
-      };
+      });
 
-      const res = await registerStudent(payload);
+      toast.success("Registration successful! Verify OTP to continue.");
 
-      toast.success(
-        res?.message || "Registered successfully! Verify OTP to continue."
-      );
-
-      navigate("/login");
+      // 🔥 IMPORTANT: Go to Verify OTP (not login)
+      navigate("/verify-otp", {
+        state: { email: form.email },
+      });
     } catch (err: any) {
       console.error(err);
-      toast.error(
-        err?.response?.data?.message || "Registration failed"
-      );
+      toast.error(err?.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -63,50 +58,41 @@ export default function Register() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md p-8 rounded-2xl bg-white/90 dark:bg-[rgba(255,255,255,0.03)] border shadow-xl"
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md p-8 rounded-2xl bg-white/90 dark:bg-gray-900 border shadow-xl"
       >
         <h2 className="text-2xl font-semibold text-center mb-6">
           Student Registration
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
           <div>
-            <label className="text-sm text-slate-600">Email</label>
+            <label className="text-sm text-gray-600">Email</label>
             <input
               type="email"
-              className="w-full p-3 rounded-md bg-white/80 dark:bg-gray-800 border"
+              className="w-full p-3 rounded-md border"
               value={form.email}
-              onChange={(e) =>
-                handleChange("email", e.target.value)
-              }
+              onChange={(e) => handleChange("email", e.target.value)}
               required
             />
           </div>
 
-          {/* Password */}
           <div>
-            <label className="text-sm text-slate-600">Password</label>
+            <label className="text-sm text-gray-600">Password</label>
             <input
               type="password"
-              className="w-full p-3 rounded-md bg-white/80 dark:bg-gray-800 border"
+              className="w-full p-3 rounded-md border"
               value={form.password}
-              onChange={(e) =>
-                handleChange("password", e.target.value)
-              }
+              onChange={(e) => handleChange("password", e.target.value)}
               required
             />
           </div>
 
-          {/* Confirm Password */}
           <div>
-            <label className="text-sm text-slate-600">
-              Confirm Password
-            </label>
+            <label className="text-sm text-gray-600">Confirm Password</label>
             <input
               type="password"
-              className="w-full p-3 rounded-md bg-white/80 dark:bg-gray-800 border"
+              className="w-full p-3 rounded-md border"
               value={form.confirmPassword}
               onChange={(e) =>
                 handleChange("confirmPassword", e.target.value)
@@ -118,7 +104,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-blue-600 text-white font-medium"
+            className="w-full py-3 rounded-lg bg-blue-600 text-white"
           >
             {loading ? "Registering..." : "Register"}
           </button>
@@ -134,3 +120,4 @@ export default function Register() {
     </div>
   );
 }
+
