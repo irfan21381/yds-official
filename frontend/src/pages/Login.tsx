@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { redirectByRole } from "@/utils/redirectByRole";
-import { loginWithPassword, sendLoginOtp, verifyLoginOtp } from "@/api/auth";
+import {
+  loginWithPassword,
+  sendLoginOtp,
+  verifyLoginOtp,
+} from "@/api/auth";
 
 /* =========================
    ICONS
@@ -97,6 +103,7 @@ export default function Login() {
   const { login } = useAuth();
 
   const [tab, setTab] = useState<"password" | "otp">("password");
+  const [loading, setLoading] = useState(false);
 
   // Password login
   const [email, setEmail] = useState("");
@@ -107,23 +114,6 @@ export default function Login() {
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
 
-  const [loading, setLoading] = useState(false);
-
-  // ✅ NEW: success state
-  const [loginSuccess, setLoginSuccess] = useState(false);
-
-  const showError = (msg: string) => alert(msg);
-
-  /* =========================
-     SHOW SUCCESS ONLY ONCE
-  ========================= */
-  useEffect(() => {
-    if (loginSuccess) {
-      alert("Logged in successfully ✅");
-      setLoginSuccess(false); // 🔥 reset to avoid multiple times
-    }
-  }, [loginSuccess]);
-
   /* =========================
      PASSWORD LOGIN
   ========================= */
@@ -131,15 +121,20 @@ export default function Login() {
     e.preventDefault();
     if (loading) return;
 
+    if (!email || !password) {
+      toast.error("Email and password required");
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await loginWithPassword(email, password);
-      login(data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      setLoginSuccess(true);
+      await login(data.token);
+
+      toast.success("Logged in successfully");
       navigate(redirectByRole(data.user.role));
     } catch (err: any) {
-      showError(err?.response?.data?.message || "Login failed");
+      toast.error(err?.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -149,15 +144,16 @@ export default function Login() {
      SEND OTP
   ========================= */
   const handleSendOtp = async () => {
-    if (!otpEmail) return showError("Enter email");
+    if (!otpEmail) return toast.error("Enter email");
     if (loading) return;
 
     setLoading(true);
     try {
       await sendLoginOtp(otpEmail);
       setOtpSent(true);
+      toast.success("OTP sent to your email");
     } catch (err: any) {
-      showError(err?.response?.data?.message || "OTP send failed");
+      toast.error(err?.response?.data?.message || "OTP send failed");
     } finally {
       setLoading(false);
     }
@@ -167,18 +163,18 @@ export default function Login() {
      VERIFY OTP
   ========================= */
   const handleVerifyOtp = async () => {
-    if (!otpCode) return showError("Enter OTP");
+    if (!otpCode) return toast.error("Enter OTP");
     if (loading) return;
 
     setLoading(true);
     try {
       const data = await verifyLoginOtp(otpEmail, otpCode);
-      login(data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      setLoginSuccess(true);
+      await login(data.token);
+
+      toast.success("OTP verified. Logged in!");
       navigate(redirectByRole(data.user.role));
     } catch (err: any) {
-      showError(err?.response?.data?.message || "OTP verification failed");
+      toast.error(err?.response?.data?.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }
@@ -269,7 +265,7 @@ export default function Login() {
                     : "bg-green-600"
                 }`}
               >
-                {loading ? "Sending OTP... Please wait" : "Send OTP"}
+                {loading ? "Sending OTP..." : "Send OTP"}
               </button>
             ) : (
               <>
