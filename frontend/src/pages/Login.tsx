@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -7,11 +6,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { redirectByRole } from "@/utils/redirectByRole";
-import {
-  loginWithPassword,
-  sendLoginOtp,
-  verifyLoginOtp,
-} from "@/api/auth";
+import { loginWithPassword } from "@/api/auth";
 
 /* =========================
    ICONS
@@ -37,12 +32,6 @@ const LockIcon = (props: any) => (
   </svg>
 );
 
-const CheckIcon = (props: any) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
-
 const Loader = () => <span className="animate-spin">⏳</span>;
 
 /* =========================
@@ -55,7 +44,6 @@ type InputProps = {
   onChange: (v: string) => void;
   placeholder: string;
   icon?: any;
-  disabled?: boolean;
 };
 
 const InputField = ({
@@ -65,7 +53,6 @@ const InputField = ({
   onChange,
   placeholder,
   icon: Icon,
-  disabled = false,
 }: InputProps) => {
   const { dark } = useTheme();
 
@@ -80,7 +67,6 @@ const InputField = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          disabled={disabled}
           className={`w-full pl-10 p-3 rounded-xl border outline-none ${
             dark
               ? "bg-gray-800 text-white border-gray-700"
@@ -103,79 +89,41 @@ export default function Login() {
   const { dark } = useTheme();
   const { login } = useAuth();
 
-  const [tab, setTab] = useState<"password" | "otp">("password");
-  const [loading, setLoading] = useState(false);
-
-  // Password login
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // OTP login
-  const [otpEmail, setOtpEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   /* =========================
-     PASSWORD LOGIN
+     LOGIN HANDLER
   ========================= */
-  const handlePasswordLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
 
     if (!email || !password) {
-      toast.error("Email and password required");
+      toast.error("Email and password are required");
       return;
     }
 
     setLoading(true);
     try {
-      const data = await loginWithPassword(email, password);
-      await login(data.token);
+      const res = await loginWithPassword(email, password);
 
-      toast.success("Logged in successfully");
-      navigate(redirectByRole(data.user.role));
+      // 🔥 TEMP PASSWORD FLOW
+      if (res.mustChangePassword) {
+        toast.info("Please change your password");
+        navigate("/force-change-password", {
+          state: { userId: res.userId },
+        });
+        return;
+      }
+
+      // ✅ NORMAL LOGIN
+      await login(res.token);
+      toast.success("Login successful");
+      navigate(redirectByRole(res.user.role));
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* =========================
-     SEND OTP
-  ========================= */
-  const handleSendOtp = async () => {
-    if (!otpEmail) return toast.error("Enter email");
-    if (loading) return;
-
-    setLoading(true);
-    try {
-      await sendLoginOtp(otpEmail);
-      setOtpSent(true);
-      toast.success("OTP sent to your email");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "OTP send failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* =========================
-     VERIFY OTP
-  ========================= */
-  const handleVerifyOtp = async () => {
-    if (!otpCode) return toast.error("Enter OTP");
-    if (loading) return;
-
-    setLoading(true);
-    try {
-      const data = await verifyLoginOtp(otpEmail, otpCode);
-      await login(data.token);
-
-      toast.success("OTP verified. Logged in!");
-      navigate(redirectByRole(data.user.role));
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }
@@ -200,100 +148,37 @@ export default function Login() {
           Login
         </h2>
 
-        <div className="flex mb-6">
-          <button
-            className={`flex-1 p-2 ${
-              tab === "password" && "bg-blue-600 text-white"
-            }`}
-            onClick={() => setTab("password")}
-          >
-            Password
-          </button>
-          <button
-            className={`flex-1 p-2 ${
-              tab === "otp" && "bg-blue-600 text-white"
-            }`}
-            onClick={() => setTab("otp")}
-          >
-            OTP
-          </button>
-        </div>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <InputField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="you@example.com"
+            icon={MailIcon}
+          />
 
-        {tab === "password" ? (
-          <form onSubmit={handlePasswordLogin} className="space-y-4">
-            <InputField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="you@example.com"
-              icon={MailIcon}
-            />
-            <InputField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={setPassword}
-              placeholder="••••••••"
-              icon={LockIcon}
-            />
-            <button
-              disabled={loading}
-              className="w-full bg-blue-600 text-white p-3 rounded-xl"
-            >
-              {loading ? <Loader /> : "Login"}
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <InputField
-              label="Email"
-              type="email"
-              value={otpEmail}
-              onChange={setOtpEmail}
-              placeholder="you@example.com"
-              icon={MailIcon}
-              disabled={otpSent}
-            />
+          <InputField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            placeholder="••••••••"
+            icon={LockIcon}
+          />
 
-            {!otpSent ? (
-              <button
-                onClick={handleSendOtp}
-                disabled={loading}
-                className={`w-full p-3 rounded-xl text-white ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-green-600"
-                }`}
-              >
-                {loading ? "Sending OTP..." : "Send OTP"}
-              </button>
-            ) : (
-              <>
-                <InputField
-                  label="OTP"
-                  type="text"
-                  value={otpCode}
-                  onChange={setOtpCode}
-                  placeholder="123456"
-                  icon={CheckIcon}
-                />
-                <button
-                  onClick={handleVerifyOtp}
-                  disabled={loading}
-                  className="w-full bg-blue-600 text-white p-3 rounded-xl"
-                >
-                  {loading ? <Loader /> : "Verify OTP"}
-                </button>
-              </>
-            )}
-          </div>
-        )}
+          <button
+            disabled={loading}
+            className="w-full bg-blue-600 text-white p-3 rounded-xl"
+          >
+            {loading ? <Loader /> : "Login"}
+          </button>
+        </form>
 
         <p className="text-sm text-center mt-6">
           New user?{" "}
           <Link to="/register" className="text-blue-500 font-semibold">
-            Register
+            Contact Admin
           </Link>
         </p>
       </motion.div>
