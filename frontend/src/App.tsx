@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 
+
 // ---------------- LAYOUTS ----------------
 import MainLayout from "./layout/MainLayout";
 import StudentLayout from "./layout/StudentLayout";
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/verify-otp" element={<VerifyOtp />} />
 
       {/* ============== STUDENT ============== */}
       <Route
