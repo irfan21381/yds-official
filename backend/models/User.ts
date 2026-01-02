@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 export interface IUser extends Document {
   email: string;
   password: string;
+
   role:
     | "SUPER_ADMIN"
     | "MANAGER"
@@ -14,14 +15,15 @@ export interface IUser extends Document {
 
   collegeId?: mongoose.Types.ObjectId;
 
-  // OTP (optional – keep for admin only if needed)
+  // 🔐 OTP (ADMIN ONLY – OPTIONAL)
   otpSecret?: string;
   otpExpires?: Date;
 
-  // ✅ TEMP PASSWORD SYSTEM
+  // 🔥 TEMP PASSWORD FLAG (OPTIONAL USE)
   isTempPassword: boolean;
 
-  isVerified: boolean;
+  // ✅ ACCOUNT APPROVAL STATUS
+  status: "PENDING" | "APPROVED";
 
   createdAt: Date;
   updatedAt: Date;
@@ -67,7 +69,7 @@ const UserSchema: Schema = new Schema(
       },
     },
 
-    // 🔐 OTP (optional – can be removed later)
+    // 🔐 OTP (ADMIN ONLY)
     otpSecret: String,
     otpExpires: Date,
 
@@ -77,9 +79,11 @@ const UserSchema: Schema = new Schema(
       default: false,
     },
 
-    isVerified: {
-      type: Boolean,
-      default: true, // ✅ No OTP needed for students
+    // ✅ APPROVAL STATUS
+    status: {
+      type: String,
+      enum: ["PENDING", "APPROVED"],
+      default: "PENDING",
     },
   },
   {
@@ -88,7 +92,7 @@ const UserSchema: Schema = new Schema(
 );
 
 /* ======================================================
-   🔐 PASSWORD HASH (SAFE & STABLE)
+   🔐 PASSWORD HASH
 ====================================================== */
 UserSchema.pre("save", async function (next) {
   const user = this as any;
