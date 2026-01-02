@@ -1,24 +1,31 @@
 import { Router } from "express";
 import {
-  register,
-  login,
-  resetPasswordWithOTP,
-  changePassword,
+  registerStudent,
+  loginUser,
+  checkAccountStatus,
 } from "../controllers/authController";
 import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
 
 /* =========================
-   PUBLIC
+   PUBLIC ROUTES
 ========================= */
-router.post("/register", register);
-router.post("/login", login);
-router.post("/reset-password", resetPasswordWithOTP);
+
+// Student Registration (email + password only)
+router.post("/register", registerStudent);
+
+// Student / Admin Login
+router.post("/login", loginUser);
+
+// Check account status by email (for homepage)
+router.get("/check-status", checkAccountStatus);
 
 /* =========================
-   PROTECTED
+   PROTECTED ROUTES
 ========================= */
+
+// (Optional – future use)
 router.post("/change-password", protect, changePassword);
 
 export default router;
