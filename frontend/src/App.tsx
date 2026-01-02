@@ -61,7 +61,7 @@ export default function App() {
         element={<ForceChangePassword />}
       />
 
-      {/* 🔐 ADMIN OTP ONLY */}
+      {/* 🔐 ADMIN OTP ONLY (NOT PUBLIC) */}
       <Route path="/admin/verify-otp" element={<VerifyOtp />} />
 
       {/* ================= STUDENT ================= */}
