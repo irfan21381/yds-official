@@ -39,15 +39,18 @@ export default function Register() {
         isPublicStudent: true,
       });
 
-      toast.success("Registration successful! Verify OTP to continue.");
+      // ✅ FINAL MESSAGE (NO OTP)
+      toast.success(
+        "Registration successful. Your account is under process. Please wait up to 12 hours and try login later."
+      );
 
-      // 🔥 IMPORTANT: Go to Verify OTP (not login)
-      navigate("/verify-otp", {
-        state: { email: form.email },
-      });
+      // ✅ Redirect to login (NOT OTP)
+      navigate("/login");
     } catch (err: any) {
-      console.error(err);
-      toast.error(err?.response?.data?.message || "Registration failed");
+      toast.error(
+        err?.response?.data?.message ||
+          "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -89,7 +92,9 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Confirm Password</label>
+            <label className="text-sm text-gray-600">
+              Confirm Password
+            </label>
             <input
               type="password"
               className="w-full p-3 rounded-md border"
@@ -115,9 +120,14 @@ export default function Register() {
               Login
             </Link>
           </div>
+
+          <div className="text-sm text-center mt-2">
+            <Link to="/" className="text-gray-500 underline">
+              Go to Home
+            </Link>
+          </div>
         </form>
       </motion.div>
     </div>
   );
 }
-
