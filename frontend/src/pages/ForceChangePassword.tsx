@@ -1,3 +1,4 @@
+// src/pages/ForceChangePassword.tsx
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -12,7 +13,13 @@ import { forceChangePassword } from "@/api/auth";
    ICON
 ========================= */
 const LockIcon = (props: any) => (
-  <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+  <svg
+    {...props}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
     <rect x="3" y="11" width="18" height="11" rx="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
@@ -26,14 +33,18 @@ export default function ForceChangePassword() {
   const { dark } = useTheme();
   const { login } = useAuth();
 
+  // userId must come from route state
   const userId = (location.state as any)?.userId;
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /* =========================
+     GUARD
+  ========================= */
   if (!userId) {
-    toast.error("Invalid access");
+    toast.error("Invalid access. Please login again.");
     navigate("/login");
     return null;
   }
@@ -46,7 +57,7 @@ export default function ForceChangePassword() {
     if (loading) return;
 
     if (!password || !confirmPassword) {
-      toast.error("All fields required");
+      toast.error("All fields are required");
       return;
     }
 
@@ -64,13 +75,15 @@ export default function ForceChangePassword() {
     try {
       const res = await forceChangePassword(userId, password);
 
-      // ✅ Login after password update
+      // Auto login after password update
       await login(res.token);
 
       toast.success("Password updated successfully");
       navigate(redirectByRole(res.user.role));
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Password update failed");
+      toast.error(
+        err?.response?.data?.message || "Failed to update password"
+      );
     } finally {
       setLoading(false);
     }
@@ -96,7 +109,8 @@ export default function ForceChangePassword() {
         </h2>
 
         <p className="text-sm text-center mb-6 text-gray-500">
-          You are using a temporary password.  
+          You are using a temporary password.
+          <br />
           Please set a new password to continue.
         </p>
 
@@ -126,8 +140,9 @@ export default function ForceChangePassword() {
           />
 
           <button
+            type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white p-3 rounded-xl"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition disabled:opacity-60"
           >
             {loading ? <Loader /> : "Update Password"}
           </button>
