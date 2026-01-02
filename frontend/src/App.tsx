@@ -5,8 +5,8 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
-import VerifyOtp from "./pages/VerifyOtp";
 import ForceChangePassword from "./pages/ForceChangePassword";
+import VerifyOtp from "./pages/VerifyOtp";
 
 /* ================= LAYOUTS ================= */
 import MainLayout from "./layout/MainLayout";
@@ -28,8 +28,6 @@ import Courses from "./components/student/Courses";
 /* ================= ADMIN ================= */
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PaymentRequests from "./pages/admin/PaymentRequests";
-
-/* ================= ADMIN COURSES ================= */
 import CoursesList from "./pages/admin/CoursesList";
 import CreateCourse from "./pages/admin/CreateCourse";
 import EditCourse from "./pages/admin/EditCourse";
@@ -48,7 +46,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 export default function App() {
   return (
     <Routes>
-      {/* ========== PUBLIC ========== */}
+      {/* ================= PUBLIC ================= */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
       </Route>
@@ -56,7 +54,6 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
 
       {/* 🔐 TEMP PASSWORD FLOW */}
       <Route
@@ -64,7 +61,10 @@ export default function App() {
         element={<ForceChangePassword />}
       />
 
-      {/* ========== STUDENT ========== */}
+      {/* 🔐 ADMIN OTP ONLY */}
+      <Route path="/admin/verify-otp" element={<VerifyOtp />} />
+
+      {/* ================= STUDENT ================= */}
       <Route
         element={
           <ProtectedRoute allowedRoles={["STUDENT", "PUBLIC_STUDENT"]} />
@@ -85,8 +85,10 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ========== SUPER ADMIN ========== */}
-      <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
+      {/* ================= SUPER ADMIN ================= */}
+      <Route
+        element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}
+      >
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<SuperAdminDashboard />} />
           <Route path="dashboard" element={<SuperAdminDashboard />} />
@@ -109,24 +111,30 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ========== MANAGER ========== */}
-      <Route element={<ProtectedRoute allowedRoles={["MANAGER"]} />}>
+      {/* ================= MANAGER ================= */}
+      <Route
+        element={<ProtectedRoute allowedRoles={["MANAGER"]} />}
+      >
         <Route path="/manager" element={<ManagerLayout />}>
           <Route index element={<ManagerDashboard />} />
           <Route path="dashboard" element={<ManagerDashboard />} />
         </Route>
       </Route>
 
-      {/* ========== TEACHER ========== */}
-      <Route element={<ProtectedRoute allowedRoles={["TEACHER"]} />}>
+      {/* ================= TEACHER ================= */}
+      <Route
+        element={<ProtectedRoute allowedRoles={["TEACHER"]} />}
+      >
         <Route path="/teacher" element={<TeacherLayout />}>
           <Route index element={<TeacherDashboard />} />
           <Route path="dashboard" element={<TeacherDashboard />} />
         </Route>
       </Route>
 
-      {/* ========== EMPLOYEE ========== */}
-      <Route element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}>
+      {/* ================= EMPLOYEE ================= */}
+      <Route
+        element={<ProtectedRoute allowedRoles={["EMPLOYEE"]} />}
+      >
         <Route path="/employee" element={<EmployeeLayout />}>
           <Route index element={<div>Employee Dashboard</div>} />
           <Route
@@ -136,7 +144,7 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ========== FALLBACK ========== */}
+      {/* ================= FALLBACK ================= */}
       <Route
         path="*"
         element={
