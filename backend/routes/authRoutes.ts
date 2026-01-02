@@ -26,6 +26,7 @@ router.get("/check-status", checkAccountStatus);
 ========================= */
 
 // (Optional – future use)
-router.post("/change-password", protect, changePassword);
+
+//router.post("/change-password", protect, changePassword);
 
 export default router;
