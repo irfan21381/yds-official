@@ -3,9 +3,10 @@ import {
   createCollege,
   assignManager,
   activateDeactivateCollege,
-  getGlobalAnalytics,
   getAllColleges,
   getUsersByRole,
+  getPendingStudents,
+  approveStudent,
 } from "../controllers/adminController";
 
 import {
@@ -18,20 +19,34 @@ import { ROLES } from "../constants/roles";
 
 const router = express.Router();
 
-// 🔐 Allow ADMIN & SUPER_ADMIN
-router.use(protect, authorize(ROLES.ADMIN, ROLES.SUPER_ADMIN));
+/* =========================
+   AUTH
+========================= */
+router.use(protect, authorize(ROLES.SUPER_ADMIN));
 
-// 📊 Analytics (existing – keep this)
-router.get("/stats", getAdminStats);       // ✅ admin stats
-router.put("/stats", updateStats);         // ✅ update stats
+/* =========================
+   STATS
+========================= */
+router.get("/stats", getAdminStats);
+router.put("/stats", updateStats);
 
-// 🏫 College management
+/* =========================
+   COLLEGE MANAGEMENT
+========================= */
 router.post("/college", createCollege);
 router.get("/colleges", getAllColleges);
 router.post("/college/:collegeId/manager", assignManager);
 router.patch("/college/:collegeId/activate", activateDeactivateCollege);
 
-// 👤 User management
+/* =========================
+   USER MANAGEMENT
+========================= */
 router.get("/users", getUsersByRole);
+
+/* =========================
+   STUDENT APPROVAL (NEW)
+========================= */
+router.get("/students/pending", getPendingStudents);
+router.post("/students/:userId/approve", approveStudent);
 
 export default router;
