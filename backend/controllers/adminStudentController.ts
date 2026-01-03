@@ -3,29 +3,22 @@ import User from "../models/User";
 import { CustomError } from "../utils/errorHandler";
 
 /* ======================================
-   GET ALL USERS (FILTER BY ROLE & STATUS)
+   GET PENDING STUDENTS
 ====================================== */
-export const getUsers = async (
+export const getPendingStudents = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { role, status } = req.query;
-
-    const query: any = {};
-
-    if (role) query.role = role;
-    if (status) query.status = status;
-
-    const users = await User.find(query)
-      .select("_id email role status createdAt")
-      .sort({ createdAt: -1 });
+    const students = await User.find({
+      role: "STUDENT",
+      status: "PENDING",
+    }).select("_id email createdAt");
 
     res.status(200).json({
       success: true,
-      count: users.length,
-      data: users,
+      data: students,
     });
   } catch (err) {
     next(err);
@@ -33,25 +26,25 @@ export const getUsers = async (
 };
 
 /* ======================================
-   APPROVE USER (STUDENT / EMPLOYEE / TEACHER)
+   APPROVE STUDENT
 ====================================== */
-export const approveUser = async (
+export const approveStudent = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.params;
+    const { studentId } = req.params;
 
-    const user = await User.findById(userId);
-    if (!user) throw new CustomError("User not found", 404);
+    const student = await User.findById(studentId);
+    if (!student) throw new CustomError("Student not found", 404);
 
-    user.status = "APPROVED";
-    await user.save();
+    student.status = "APPROVED";
+    await student.save();
 
     res.status(200).json({
       success: true,
-      message: "User approved successfully",
+      message: "Student approved successfully",
     });
   } catch (err) {
     next(err);
