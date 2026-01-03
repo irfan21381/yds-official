@@ -4,29 +4,42 @@ import {
   loginUser,
   checkAccountStatus,
 } from "../controllers/authController";
-import { protect } from "../middleware/authMiddleware";
 
 const router = Router();
 
 /* =========================
-   PUBLIC ROUTES
+   🌍 PUBLIC ROUTES
 ========================= */
 
-// Student Registration (email + password only)
+/**
+ * Student Registration
+ * - email + password only
+ * - status = PENDING
+ * - no OTP
+ */
 router.post("/register", registerStudent);
 
-// Student / Admin Login
+/**
+ * Login (Admin + Student)
+ * - blocks PENDING users
+ * - allows ACTIVE users
+ */
 router.post("/login", loginUser);
 
-// Check account status by email (for homepage)
+/**
+ * Check account status
+ * - used on homepage
+ * - tells user if account exists / pending / active
+ */
 router.get("/check-status", checkAccountStatus);
 
 /* =========================
-   PROTECTED ROUTES
+   🔐 PROTECTED ROUTES
 ========================= */
-
-// (Optional – future use)
-
-//router.post("/change-password", protect, changePassword);
+/**
+ * (Reserved for future use)
+ * Example:
+ * router.post("/change-password", protect, changePassword);
+ */
 
 export default router;
