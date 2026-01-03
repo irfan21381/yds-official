@@ -9,6 +9,7 @@ import mongoSanitize from "express-mongo-sanitize";
 import mongoose from "mongoose";
 
 import routes from "./routes";
+import { createDefaultAdmin } from "./utils/createDefaultAdmin";
 
 const app = express();
 
@@ -18,8 +19,7 @@ const app = express();
 app.set("trust proxy", 1);
 
 /* =========================================================
-   🔥 CORS (JWT BASED – NO COOKIES)
-   THIS IS THE KEY FIX
+   🌍 CORS (JWT ONLY – NO COOKIES)
 ========================================================= */
 app.use(
   cors({
@@ -42,11 +42,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
 
 /* =========================================================
-   ⏱ RATE LIMITING (RENDER SAFE)
+   ⏱ RATE LIMITING (SAFE)
 ========================================================= */
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,                // requests per IP
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -63,7 +63,7 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 /* =========================================================
-   ❤️ API HEALTH CHECK
+   ❤️ HEALTH CHECK
 ========================================================= */
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ ok: true });
@@ -75,18 +75,22 @@ app.get("/api/health", (_req: Request, res: Response) => {
 app.use("/api", routes);
 
 /* =========================================================
-   🗄 MONGODB CONNECTION
+   🗄 MONGODB CONNECTION + DEFAULT ADMIN
 ========================================================= */
 const MONGO_URI =
   process.env.MONGO_URI || "mongodb://127.0.0.1:27017/yds";
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("✅ MongoDB connected");
+
+    // 🔥 AUTO CREATE DEFAULT SUPER_ADMIN
+    await createDefaultAdmin();
   })
   .catch((err: Error) => {
     console.error("❌ MongoDB connection failed:", err.message);
+    process.exit(1);
   });
 
 /* =========================================================
