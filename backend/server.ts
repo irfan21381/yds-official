@@ -14,23 +14,27 @@ const app = express();
 
 /* =========================================================
    🔐 TRUST PROXY (RENDER / REVERSE PROXY FIX)
-   MUST be before rate-limit
 ========================================================= */
 app.set("trust proxy", 1);
 
 /* =========================================================
-   🔥 CORS (MUST BE FIRST MIDDLEWARE)
+   🔥 CORS (JWT BASED – NO COOKIES)
+   THIS IS THE KEY FIX
 ========================================================= */
 app.use(
   cors({
-    origin: true, // allow all frontend origins
-    credentials: true,
+    origin: [
+      "https://yasin-digital-solutions-frontend.onrender.com",
+      "http://localhost:5173",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.options("*", cors());
 
 /* =========================================================
-   🔐 SECURITY & PARSERS
+   🔐 SECURITY & BODY PARSERS
 ========================================================= */
 app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
@@ -38,13 +42,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
 
 /* =========================================================
-   ⏱ RATE LIMITING (SAFE FOR RENDER)
+   ⏱ RATE LIMITING (RENDER SAFE)
 ========================================================= */
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200,                // requests per IP
-  standardHeaders: true,   // return rate limit info in headers
-  legacyHeaders: false,    // disable X-RateLimit-* headers
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use(limiter);
 
