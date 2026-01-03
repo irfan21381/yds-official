@@ -1,25 +1,27 @@
 import User from "../models/User";
 
 export const createDefaultAdmin = async () => {
-  const adminEmail = "admin@yds.com";
-  const adminPassword = "Admin@123"; // 🔐 CHANGE AFTER LOGIN
+  const ADMIN_EMAIL = "admin@yds.com";
+  const ADMIN_PASSWORD = "Admin@123"; // 🔴 CHANGE AFTER FIRST LOGIN
 
-  const existingAdmin = await User.findOne({ role: "SUPER_ADMIN" });
+  const existingAdmin = await User.findOne({
+    role: "SUPER_ADMIN",
+  });
 
   if (existingAdmin) {
-    console.log("✅ Default admin already exists");
+    console.log("✅ SUPER_ADMIN already exists");
     return;
   }
 
   await User.create({
-    email: adminEmail,
-    password: adminPassword,
+    email: ADMIN_EMAIL,
+    password: ADMIN_PASSWORD, // bcrypt auto-hash
     role: "SUPER_ADMIN",
-    status: "ACTIVE",
-    isVerified: true,
+    status: "APPROVED",
+    isTempPassword: false,
   });
 
-  console.log("🔥 DEFAULT ADMIN CREATED");
-  console.log(`📧 Email: ${adminEmail}`);
-  console.log(`🔑 Password: ${adminPassword}`);
+  console.log("🔥 DEFAULT SUPER_ADMIN CREATED");
+  console.log("📧 Email:", ADMIN_EMAIL);
+  console.log("🔑 Password:", ADMIN_PASSWORD);
 };
