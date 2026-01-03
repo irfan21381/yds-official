@@ -6,25 +6,21 @@ import { CustomError } from "../utils/errorHandler";
 /* ======================================================
    🔐 Helper: Send JWT
 ====================================================== */
-const sendTokenResponse = (
-  user: any,
-  statusCode: number,
-  res: Response
-) => {
+const sendTokenResponse = (user: any, res: Response) => {
   const token = generateToken(
     user._id,
     user.role,
     user.collegeId?.toString()
   );
 
-  res.status(statusCode).json({
+  res.status(200).json({
     success: true,
     token,
     user: {
       id: user._id,
       email: user.email,
       role: user.role,
-      status: user.status,
+      status: user.status || "ACTIVE",
     },
   });
 };
@@ -46,7 +42,6 @@ export const registerStudent = async (
 
     const existingUser = await User.findOne({ email });
 
-    // 🔁 Already registered
     if (existingUser) {
       if (existingUser.status === "PENDING") {
         return res.status(200).json({
@@ -56,10 +51,7 @@ export const registerStudent = async (
         });
       }
 
-      throw new CustomError(
-        "Account already exists. Please login.",
-        400
-      );
+      throw new CustomError("Account already exists. Please login.", 400);
     }
 
     await User.create({
@@ -67,6 +59,7 @@ export const registerStudent = async (
       password,
       role: "STUDENT",
       status: "PENDING",
+      isVerified: true,
     });
 
     res.status(201).json({
@@ -80,7 +73,7 @@ export const registerStudent = async (
 };
 
 /* ======================================================
-   🔑 LOGIN (BLOCK IF PENDING)
+   🔑 LOGIN (ADMIN ALWAYS ALLOWED)
 ====================================================== */
 export const loginUser = async (
   req: Request,
@@ -100,8 +93,8 @@ export const loginUser = async (
       throw new CustomError("Invalid credentials", 401);
     }
 
-    // ⏳ BLOCK PENDING USERS
-    if (user.status === "PENDING") {
+    // 🔒 BLOCK ONLY STUDENTS IF PENDING
+    if (user.role === "STUDENT" && user.status === "PENDING") {
       return res.status(403).json({
         success: false,
         error: "ACCOUNT_PENDING",
@@ -115,7 +108,7 @@ export const loginUser = async (
       throw new CustomError("Invalid credentials", 401);
     }
 
-    sendTokenResponse(user, 200, res);
+    sendTokenResponse(user, res);
   } catch (err) {
     next(err);
   }
@@ -148,7 +141,8 @@ export const checkAccountStatus = async (
     res.status(200).json({
       success: true,
       exists: true,
-      status: user.status,
+      status: user.status || "ACTIVE",
+      role: user.role,
     });
   } catch (err) {
     next(err);
