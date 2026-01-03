@@ -2,55 +2,56 @@ import { Request, Response, NextFunction } from "express";
 import User from "../models/User";
 import { CustomError } from "../utils/errorHandler";
 
-/* =========================================
-   GET ALL PENDING STUDENTS
-========================================= */
-export const getPendingStudents = async (
-  _req: Request,
+/* ======================================
+   GET ALL USERS (FILTER BY ROLE & STATUS)
+====================================== */
+export const getUsers = async (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const students = await User.find({
-      role: "STUDENT",
-      status: "PENDING",
-    }).select("_id email createdAt");
+    const { role, status } = req.query;
+
+    const query: any = {};
+
+    if (role) query.role = role;
+    if (status) query.status = status;
+
+    const users = await User.find(query)
+      .select("_id email role status createdAt")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      data: students,
+      count: users.length,
+      data: users,
     });
   } catch (err) {
     next(err);
   }
 };
 
-/* =========================================
-   APPROVE STUDENT
-========================================= */
-export const approveStudent = async (
+/* ======================================
+   APPROVE USER (STUDENT / EMPLOYEE / TEACHER)
+====================================== */
+export const approveUser = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { studentId } = req.params;
+    const { userId } = req.params;
 
-    const student = await User.findById(studentId);
-    if (!student) {
-      throw new CustomError("Student not found", 404);
-    }
+    const user = await User.findById(userId);
+    if (!user) throw new CustomError("User not found", 404);
 
-    if (student.status === "APPROVED") {
-      throw new CustomError("Student already approved", 400);
-    }
-
-    student.status = "APPROVED";
-    await student.save();
+    user.status = "APPROVED";
+    await user.save();
 
     res.status(200).json({
       success: true,
-      message: "Student approved successfully",
+      message: "User approved successfully",
     });
   } catch (err) {
     next(err);
