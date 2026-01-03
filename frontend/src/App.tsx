@@ -33,6 +33,7 @@ import CreateCourse from "./pages/admin/CreateCourse";
 import EditCourse from "./pages/admin/EditCourse";
 import CourseContent from "./pages/admin/CourseContent";
 import CourseStudents from "./pages/admin/CourseStudents";
+import AdminStudents from "./pages/admin/Students"; // ✅ STUDENT APPROVAL PAGE
 
 /* ================= MANAGER ================= */
 import ManagerDashboard from "./pages/ManagerDashboard";
@@ -55,13 +56,13 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* 🔐 TEMP PASSWORD FLOW */}
+      {/* 🔐 TEMP PASSWORD */}
       <Route
         path="/force-change-password"
         element={<ForceChangePassword />}
       />
 
-      {/* 🔐 ADMIN OTP ONLY (NOT PUBLIC) */}
+      {/* 🔐 ADMIN OTP (OPTIONAL) */}
       <Route path="/admin/verify-otp" element={<VerifyOtp />} />
 
       {/* ================= STUDENT ================= */}
@@ -92,6 +93,10 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<SuperAdminDashboard />} />
           <Route path="dashboard" element={<SuperAdminDashboard />} />
+
+          {/* ✅ STEP-1 STUDENT APPROVAL */}
+          <Route path="students" element={<AdminStudents />} />
+
           <Route
             path="payment-requests"
             element={<PaymentRequests />}
