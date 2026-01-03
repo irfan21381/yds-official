@@ -2,6 +2,7 @@ import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware";
 import { ROLES } from "../constants/roles";
 
+/* ===== CONTROLLERS ===== */
 import {
   createCollege,
   assignManager,
@@ -13,6 +14,11 @@ import {
   getAdminStats,
   updateStats,
 } from "../controllers/statsController";
+
+import {
+  getPendingStudents,
+  approveStudent,
+} from "../controllers/adminStudentController";
 
 const router = express.Router();
 
@@ -26,6 +32,12 @@ router.use(protect, authorize(ROLES.SUPER_ADMIN));
 ========================= */
 router.get("/stats", getAdminStats);
 router.put("/stats", updateStats);
+
+/* =========================
+   STUDENT APPROVAL (STEP-1)
+========================= */
+router.get("/students/pending", getPendingStudents);
+router.patch("/students/:studentId/approve", approveStudent);
 
 /* =========================
    COLLEGE MANAGEMENT
