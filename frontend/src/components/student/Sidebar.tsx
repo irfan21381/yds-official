@@ -8,6 +8,9 @@ export default function Sidebar() {
       isActive ? "bg-blue-600 text-white" : "text-gray-700 dark:text-gray-200"
     }`;
 
+  // External link kosam oka saadharana class
+  const externalLinkClass = "block px-4 py-3 rounded-md font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800";
+
   return (
     <aside className="fixed left-0 top-0 h-full w-60 bg-white dark:bg-gray-900 border-r dark:border-gray-700">
       
@@ -22,7 +25,16 @@ export default function Sidebar() {
         <NavLink to="/student/courses" className={linkClass}>Courses</NavLink>
         <NavLink to="/student/internships" className={linkClass}>Internships</NavLink>
         <NavLink to="/student/payments" className={linkClass}>Payments</NavLink>
-        <NavLink to="/student/ai" className={linkClass}>AI Assistant</NavLink>
+        
+        {/* Ikkada NavLink ni <a> tag ga marchamu */}
+        <a 
+          href="https://yasindigitalsolutions.online/" 
+          className={externalLinkClass}
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
+          AI Assistant
+        </a>
       </nav>
     </aside>
   );
