@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getUsers, approveUser } from "@/api/adminUsers";
+import { getUsers, approveUser } from "@/api/adminStudents";
 import { toast } from "sonner";
 
 export default function AdminStudents() {
