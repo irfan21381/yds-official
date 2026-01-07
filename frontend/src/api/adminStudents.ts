@@ -6,6 +6,7 @@ export const getPendingStudents = async () => {
 };
 
 export const approveStudent = async (studentId: string) => {
-  const res = await api.patch(`/admin/students/${studentId}/approve`);
+  // Added an empty object {} as the body, which some APIs require for PATCH
+  const res = await api.patch(`/admin/students/${studentId}/approve`, {});
   return res.data;
 };
