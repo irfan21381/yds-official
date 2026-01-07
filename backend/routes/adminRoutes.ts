@@ -3,11 +3,20 @@ import { protect, authorize } from "../middleware/authMiddleware";
 import { ROLES } from "../constants/roles";
 
 import {
+  // USER MANAGEMENT
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  updateUserStatus,
+
+  // COLLEGE MANAGEMENT
   createCollege,
   assignManager,
   activateDeactivateCollege,
   getAllColleges,
-  getAllUsers, // ✅ Import the new controller
+  getGlobalAnalytics,
 } from "../controllers/adminController";
 
 import {
@@ -17,25 +26,38 @@ import {
 
 const router = express.Router();
 
-// Auth Protection
+/* =========================
+   AUTH (SUPER ADMIN ONLY)
+========================= */
 router.use(protect, authorize(ROLES.SUPER_ADMIN));
 
 /* =========================
-    USER DATABASE ROUTES
+   USER MANAGEMENT (CRUD)
 ========================= */
-// Step 1 Approval list
+router.get("/users", getAllUsers);               // list users
+router.get("/users/:id", getUserById);           // view details
+router.post("/users", createUser);               // add EMP / STUDENT
+router.put("/users/:id", updateUser);            // update user
+router.delete("/users/:id", deleteUser);         // delete user
+router.patch("/users/:id/status", updateUserStatus); // activate/deactivate
+
+/* =========================
+   STUDENT APPROVAL FLOW
+========================= */
 router.get("/students/pending", getPendingStudents);
 router.patch("/students/:studentId/approve", approveStudent);
 
-// ✅ NEW: Full user database access
-router.get("/users/all", getAllUsers); 
-
 /* =========================
-    COLLEGE MANAGEMENT
+   COLLEGE MANAGEMENT
 ========================= */
 router.post("/college", createCollege);
 router.get("/colleges", getAllColleges);
 router.post("/college/:collegeId/manager", assignManager);
 router.patch("/college/:collegeId/activate", activateDeactivateCollege);
+
+/* =========================
+   ANALYTICS
+========================= */
+router.get("/analytics", getGlobalAnalytics);
 
 export default router;
