@@ -8,12 +8,8 @@ import {
   assignManager,
   activateDeactivateCollege,
   getAllColleges,
+  getAllUsers // ✅ New controller import
 } from "../controllers/adminController";
-
-import {
-  getAdminStats,
-  updateStats,
-} from "../controllers/statsController";
 
 import {
   getPendingStudents,
@@ -28,16 +24,16 @@ const router = express.Router();
 router.use(protect, authorize(ROLES.SUPER_ADMIN));
 
 /* =========================
-   DASHBOARD STATS
-========================= */
-router.get("/stats", getAdminStats);
-router.put("/stats", updateStats);
-
-/* =========================
    STUDENT APPROVAL (STEP-1)
 ========================= */
 router.get("/students/pending", getPendingStudents);
 router.patch("/students/:studentId/approve", approveStudent);
+
+/* =========================
+   USER DATABASE (FULL DATA)
+========================= */
+// ✅ New route for viewing all users, including emails and passwords
+router.get("/users/all", getAllUsers); 
 
 /* =========================
    COLLEGE MANAGEMENT
