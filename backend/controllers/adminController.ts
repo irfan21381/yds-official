@@ -1,23 +1,15 @@
-import { Request, Response, NextFunction } from 'express';
-import College from '../models/College';
-import User from '../models/User';
-import Material from '../models/Material';
-import Quiz from '../models/Quiz';
-import QuizAttempt from '../models/QuizAttempt';
-import Embedding from '../models/Embedding';
-import { CustomError } from '../utils/errorHandler';
-import { generateOTP, sendOTPEmail } from '../utils/otp';
-import AuditLog from '../models/AuditLog';
+import { Request, Response, NextFunction } from "express";
+import bcrypt from "bcryptjs";
+import User from "../models/User";
+import College from "../models/College";
+import AuditLog from "../models/AuditLog";
+import { CustomError } from "../utils/errorHandler";
+import { generateOTP, sendOTPEmail } from "../utils/otp";
 
-/* ===========================================================
-    ✅ FIXED AUTHENTICATED REQUEST (IMPORTANT FOR RENDER)
-=========================================================== */
-export interface AuthenticatedRequest<
-  P = any,
-  ResBody = any,
-  ReqBody = any,
-  ReqQuery = any
-> extends Request<P, ResBody, ReqBody, ReqQuery> {
+/* =========================
+   AUTHENTICATED REQUEST
+========================= */
+export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     role: string;
@@ -25,177 +17,254 @@ export interface AuthenticatedRequest<
   };
 }
 
-/* ===========================================================
-    SUPER ADMIN → GET ALL USERS (FULL DATA AUDIT)
-=========================================================== */
+/* =========================
+   USER MANAGEMENT
+========================= */
+
+// GET ALL USERS
 export const getAllUsers = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    if (!req.user || req.user.role !== 'SUPER_ADMIN') {
-      throw new CustomError('Only Super Admin can view the full database', 403);
-    }
-
-    // Fetches all users and explicitly includes the hashed password field
     const users = await User.find()
-      .select('+password') 
+      .select("-password") // 🔥 never expose password
       .sort({ createdAt: -1 });
 
-    res.status(200).json({ 
-      success: true, 
-      count: users.length,
-      data: users 
-    });
-  } catch (error) {
-    next(error);
+    res.json({ success: true, count: users.length, data: users });
+  } catch (err) {
+    next(err);
   }
 };
 
-/* ===========================================================
-    SUPER ADMIN → CREATE COLLEGE
-=========================================================== */
-export const createCollege = async (
-  req: AuthenticatedRequest<any, any, { name: string }>,
+// GET USER DETAILS
+export const getUserById = async (
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
-  const { name } = req.body;
   try {
-    if (!req.user || req.user.role !== 'SUPER_ADMIN') {
-      throw new CustomError('Only Super Admin can create colleges', 403);
-    }
+    const user = await User.findById(req.params.id).select("-password");
+    if (!user) throw new CustomError("User not found", 404);
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// CREATE USER (EMP / STUDENT / TEACHER)
+export const createUser = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, password, role, collegeId } = req.body;
+
+    const exists = await User.findOne({ email });
+    if (exists) throw new CustomError("User already exists", 400);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      role,
+      collegeId,
+      isVerified: true,
+      isActive: true,
+    });
+
+    await AuditLog.create({
+      userId: req.user?.id,
+      action: "USER_CREATED",
+      details: { email, role },
+    });
+
+    res.status(201).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// UPDATE USER
+export const updateUser = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    ).select("-password");
+
+    if (!user) throw new CustomError("User not found", 404);
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE USER
+export const deleteUser = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) throw new CustomError("User not found", 404);
+
+    res.json({ success: true, message: "User deleted" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ACTIVATE / DEACTIVATE USER
+export const updateUserStatus = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { isActive } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isActive },
+      { new: true }
+    ).select("-password");
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/* =========================
+   COLLEGE MANAGEMENT
+========================= */
+
+export const createCollege = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { name } = req.body;
+
     const exists = await College.findOne({ name });
-    if (exists) throw new CustomError('College already exists', 400);
+    if (exists) throw new CustomError("College already exists", 400);
 
     const college = await College.create({
       name,
-      superAdminId: req.user.id,
-      isActive: true
-    });
-
-    await AuditLog.create({
-      userId: req.user.id,
-      action: 'COLLEGE_CREATED',
-      details: { collegeId: college._id, name }
+      superAdminId: req.user?.id,
+      isActive: true,
     });
 
     res.status(201).json({ success: true, data: college });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
-/* ===========================================================
-    SUPER ADMIN → ASSIGN MANAGER
-=========================================================== */
 export const assignManager = async (
-  req: AuthenticatedRequest<any, any, { collegeId: string; managerEmail: string }>,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
-  const { collegeId, managerEmail } = req.body;
   try {
-    if (!req.user || req.user.role !== 'SUPER_ADMIN') {
-      throw new CustomError('Only Super Admin can assign managers', 403);
-    }
-    const college = await College.findById(collegeId);
-    if (!college) throw new CustomError('College not found', 404);
+    const { collegeId, managerEmail } = req.body;
 
-    let managerUser = await User.findOne({ email: managerEmail });
-    if (managerUser) {
-      if (managerUser.role === 'MANAGER' && managerUser.collegeId?.toString() === collegeId) {
-        throw new CustomError('This user is already manager of this college', 400);
-      }
-      managerUser.role = 'MANAGER';
-      managerUser.collegeId = college._id;
-      managerUser.isVerified = false;
-      delete (managerUser as any).password;
-      await managerUser.save();
-    } else {
-      managerUser = await User.create({
+    let manager = await User.findOne({ email: managerEmail });
+
+    if (!manager) {
+      manager = await User.create({
         email: managerEmail,
-        role: 'MANAGER',
+        role: "MANAGER",
         collegeId,
-        isVerified: false
+        isVerified: false,
       });
+    } else {
+      manager.role = "MANAGER";
+      manager.collegeId = collegeId;
     }
 
     const otp = generateOTP();
-    managerUser.otpSecret = otp;
-    managerUser.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
-    await managerUser.save();
-    await sendOTPEmail(managerUser.email, otp);
+    manager.otpSecret = otp;
+    manager.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+    await manager.save();
 
-    await AuditLog.create({
-      userId: req.user.id,
-      action: 'MANAGER_ASSIGNED',
-      details: { managerEmail, managerId: managerUser._id, collegeId }
-    });
+    await sendOTPEmail(manager.email, otp);
 
-    res.status(200).json({
+    res.json({
       success: true,
-      message: `Manager assigned to ${college.name}. OTP sent.`,
-      data: managerUser
+      message: "Manager assigned & OTP sent",
     });
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
-/* ===========================================================
-    SUPER ADMIN → ACTIVATE / DEACTIVATE COLLEGE
-=========================================================== */
 export const activateDeactivateCollege = async (
-  req: AuthenticatedRequest<{ collegeId: string }, any, { isActive: boolean }>,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
-  const { collegeId } = req.params;
-  const { isActive } = req.body;
   try {
-    if (!req.user || req.user.role !== 'SUPER_ADMIN') {
-      throw new CustomError('Only Super Admin can modify colleges', 403);
-    }
-    const college = await College.findByIdAndUpdate(collegeId, { isActive }, { new: true });
-    if (!college) throw new CustomError('College not found', 404);
+    const { collegeId } = req.params;
+    const { isActive } = req.body;
 
-    await AuditLog.create({
-      userId: req.user.id,
-      action: isActive ? 'COLLEGE_ACTIVATED' : 'COLLEGE_DISABLED',
-      details: { collegeId, isActive }
-    });
+    const college = await College.findByIdAndUpdate(
+      collegeId,
+      { isActive },
+      { new: true }
+    );
 
-    res.status(200).json({
-      success: true,
-      message: `College ${college.name} has been ${isActive ? 'activated' : 'deactivated'}.`,
-      data: college
-    });
-  } catch (error) {
-    next(error);
+    if (!college) throw new CustomError("College not found", 404);
+
+    res.json({ success: true, data: college });
+  } catch (err) {
+    next(err);
   }
 };
 
-/* ===========================================================
-    SUPER ADMIN → GET ALL COLLEGES / ANALYTICS
-=========================================================== */
-export const getAllColleges = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getAllColleges = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    if (!req.user || req.user.role !== 'SUPER_ADMIN') throw new CustomError('Forbidden', 403);
     const colleges = await College.find();
-    res.status(200).json({ success: true, data: colleges });
-  } catch (error) { next(error); }
+    res.json({ success: true, data: colleges });
+  } catch (err) {
+    next(err);
+  }
 };
 
-export const getGlobalAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+/* =========================
+   ANALYTICS
+========================= */
+export const getGlobalAnalytics = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    if (!req.user || req.user.role !== 'SUPER_ADMIN') throw new CustomError('Forbidden', 403);
-    const analytics = {
+    const data = {
       colleges: await College.countDocuments(),
-      totalUsers: await User.countDocuments(),
-      students: await User.countDocuments({ role: 'STUDENT' }),
+      users: await User.countDocuments(),
+      students: await User.countDocuments({ role: "STUDENT" }),
     };
-    res.status(200).json({ success: true, data: analytics });
-  } catch (error) { next(error); }
+
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
 };
