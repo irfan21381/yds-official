@@ -5,7 +5,7 @@ import {
   getAvailableQuizzes,
   getQuizById,
   submitQuizAttempt,
-  getStudentEnrolledSubjects,
+  getStudentEnrolledSubjects, // 👈 Line 37 daggara idi undefined kakunda chudali
   getStudentMe,
   getStudentStats,
   getStudentActivity,
@@ -42,7 +42,7 @@ router.get("/quizzes/:quizId", getQuizById);
 router.post("/quizzes/:quizId/submit", submitQuizAttempt);
 
 /* 📘 Subjects */
-router.get("/subjects", getStudentEnrolledSubjects);
+router.get("/subjects", getStudentEnrolledSubjects); // 👈 Line 37: Error ikkada vasthundi
 
 /* 🎓 Internships */
 router.get("/internships", getMyApplications);
