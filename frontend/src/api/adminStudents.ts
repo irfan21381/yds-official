@@ -1,21 +1,20 @@
 import { api } from "@/lib/api";
 
-/**
- * Fetches all students with "PENDING" status
- */
+// Fetch ONLY pending students (for your current approval workflow)
 export const getPendingStudents = async () => {
   const res = await api.get("/admin/students/pending");
-  // Returns res.data directly to the component
   return res.data;
 };
 
-/**
- * Approves a specific student by ID
- * @param studentId The unique MongoDB _id of the student
- */
+// Fetch ALL users (Students, Employees, Managers) with full data
+export const getAllUsers = async () => {
+  // This endpoint should return the full user list from your backend
+  const res = await api.get("/admin/users/all"); 
+  return res.data;
+};
+
+// Approval logic
 export const approveStudent = async (studentId: string) => {
-  // ✅ Added empty object {} as the request body. 
-  // Some servers require a body for PATCH requests even if it's empty.
   const res = await api.patch(`/admin/students/${studentId}/approve`, {});
   return res.data;
 };
