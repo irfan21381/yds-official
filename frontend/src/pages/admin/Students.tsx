@@ -10,28 +10,36 @@ export default function AdminUserManagement() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = view === "pending" ? await getPendingStudents() : await getAllUsers();
+      // Fetch data based on the selected view
+      const res = view === "pending" ? await getPendingStudents() : await getAllUsers();
       
-      // Safe data mapping
-      if (Array.isArray(data)) setUsers(data);
-      else if (data?.data) setUsers(data.data);
-      else if (data?.users) setUsers(data.users);
-      else setUsers([]);
+      // Safety mapping: Checks for { data: [] }, { users: [] }, or direct array []
+      const actualData = res?.data || res?.users || res;
+
+      if (Array.isArray(actualData)) {
+        setUsers(actualData);
+      } else {
+        setUsers([]);
+      }
     } catch (err) {
+      console.error("Load Error:", err);
       toast.error("Failed to load user data");
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadData(); }, [view]);
+  useEffect(() => {
+    loadData();
+  }, [view]);
 
   const handleApprove = async (id: string) => {
     try {
       await approveStudent(id);
       toast.success("User approved successfully");
       loadData();
-    } catch {
+    } catch (err) {
       toast.error("Action failed");
     }
   };
@@ -41,7 +49,7 @@ export default function AdminUserManagement() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-          <p className="text-sm text-gray-500">Manage approvals and view complete user data</p>
+          <p className="text-sm text-gray-500">View complete database and manage approvals</p>
         </div>
         
         <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -61,10 +69,10 @@ export default function AdminUserManagement() {
       </div>
 
       {loading ? (
-        <div className="text-center py-10 text-gray-500">Loading database...</div>
+        <div className="text-center py-10 text-gray-500">Loading user records...</div>
       ) : (
         <div className="bg-white shadow rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="p-4 font-semibold text-gray-600">Email</th>
@@ -79,15 +87,15 @@ export default function AdminUserManagement() {
                 <tr key={u._id} className="border-b hover:bg-gray-50">
                   <td className="p-4 font-medium">{u.email}</td>
                   <td className="p-4">
-                    <span className="px-2 py-1 rounded text-xs bg-gray-100">{u.role}</span>
+                    <span className="px-2 py-1 rounded text-xs bg-gray-100 font-semibold">{u.role}</span>
                   </td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                      {u.status}
+                      {u.status || 'PENDING'}
                     </span>
                   </td>
                   {view === "all" && (
-                    <td className="p-4 font-mono text-xs text-gray-400 truncate max-w-[150px]">
+                    <td className="p-4 font-mono text-[10px] text-gray-400 truncate max-w-[150px]">
                       {u.password || "••••••••"}
                     </td>
                   )}
@@ -95,18 +103,20 @@ export default function AdminUserManagement() {
                     {u.status === "PENDING" && (
                       <button 
                         onClick={() => handleApprove(u._id)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm shadow-sm"
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition shadow-sm"
                       >
                         Approve
                       </button>
                     )}
-                    <button className="ml-2 text-blue-600 hover:underline text-sm">Edit</button>
+                    <button className="ml-2 text-blue-600 hover:underline text-sm font-medium">Edit</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {users.length === 0 && <p className="p-10 text-center text-gray-500">No users found in this category.</p>}
+          {users.length === 0 && (
+            <div className="p-10 text-center text-gray-500">No records found.</div>
+          )}
         </div>
       )}
     </div>
