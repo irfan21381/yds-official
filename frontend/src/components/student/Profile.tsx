@@ -1,12 +1,9 @@
 // src/components/student/Profile.tsx
 import React, { useEffect, useState } from "react";
-import API from "@/lib/api"; // Assuming this is your configured axios instance
+import API from "@/lib/api"; 
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-// --- INTERFACES FOR TYPE SAFETY ---
-
-/** Defines the structure of the data displayed/edited in the form. */
 interface StudentProfile {
   fullName: string;
   email: string;
@@ -16,7 +13,6 @@ interface StudentProfile {
   nationality: string;
 }
 
-// --- MAIN COMPONENT ---
 export default function Profile() {
   const { logout } = useAuth();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -24,23 +20,26 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch Profile Data on Load
+  // 1. Fetch Profile Data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await API.get("/student/me");
+        // Safety check using optional chaining
+        const user = res.data?.data?.user;
+        const student = res.data?.data?.student;
 
-        // Assuming API response structure is: { data: { user: { email }, student: { ...data } } }
-        const user = res.data.data.user;
-        const student = res.data.data.student;
+        if (!user || !student) {
+          throw new Error("Invalid data structure from server");
+        }
 
         const formatted: StudentProfile = {
-          fullName: student?.name || "", // 💡 NOTE: The backend sends 'name', but the frontend uses 'fullName'
-          email: user.email,
-          collegeName: student?.collegeName || "",
-          whatsapp: student?.whatsapp || "",
-          city: student?.city || "",
-          nationality: student?.nationality || "Indian",
+          fullName: student.name || "", 
+          email: user.email || "",
+          collegeName: student.collegeName || "",
+          whatsapp: student.whatsapp || "",
+          city: student.city || "",
+          nationality: student.nationality || "Indian",
         };
 
         setProfile(formatted);
@@ -55,115 +54,90 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
-  // 2. Handle Form Changes
   const handleChange = (field: keyof StudentProfile, value: string) => {
     setForm((prev) => (prev ? { ...prev, [field]: value } : null));
   };
 
-  // 3. Save Profile Update
+  // 3. Save Profile Update (FIXED SECTION)
   const saveProfile = async () => {
     if (!form) return;
 
     try {
       const res = await API.put("/student/me", form);
       
-      // Update the main profile state from the response data to ensure consistency
-      const studentData = res.data.data.student;
+      // Screen shot lo unna error ni fix cheyadaniki optional chaining
+      const studentData = res.data?.data?.student;
+
+      if (!studentData) {
+        // Oka vela response lo student lekapothe form data ne vaadutundi
+        toast.warning("Profile saved, but response was empty.");
+        setProfile(form);
+        setEditing(false);
+        return;
+      }
+
       const newProfile: StudentProfile = {
           ...form,
-          fullName: studentData.name, // Use the name returned by the server
-          collegeName: studentData.collegeName,
-          // etc.
+          fullName: studentData.name || form.fullName,
+          collegeName: studentData.collegeName || form.collegeName,
+          whatsapp: studentData.whatsapp || form.whatsapp,
+          city: studentData.city || form.city,
+          nationality: studentData.nationality || form.nationality,
       };
 
       setProfile(newProfile);
       setForm(newProfile);
       setEditing(false);
       toast.success("Profile updated successfully!");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Profile update failed:", err);
-      toast.error("Update failed. Please try again.");
+      // Detailed error message from server if available
+      const errMsg = err.response?.data?.message || "Update failed. Please try again.";
+      toast.error(errMsg);
     }
   };
 
-  if (loading) return <div className="p-6">Loading profile...</div>;
-  if (!profile || !form) return <div className="p-6">Profile data not available.</div>;
+  if (loading) return <div className="p-6 text-center">Loading profile...</div>;
+  if (!profile || !form) return <div className="p-6 text-center">Profile data not available.</div>;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">My Profile</h2>
-
+        <h2 className="text-2xl font-bold dark:text-white">My Profile</h2>
         <div className="flex gap-2">
           <button
             onClick={() => {
               setEditing((prev) => !prev);
-              setForm(profile); // Reset form state to the last saved profile
+              setForm(profile); 
             }}
-            className="px-3 py-2 border rounded transition hover:bg-gray-50"
+            className="px-4 py-2 border rounded transition hover:bg-gray-50 dark:text-white dark:hover:bg-gray-800"
           >
             {editing ? "Cancel" : "Edit"}
           </button>
-
           <button
             onClick={logout}
-            className="px-3 py-2 rounded bg-red-600 text-white transition hover:bg-red-700"
+            className="px-4 py-2 rounded bg-red-600 text-white transition hover:bg-red-700"
           >
             Logout
           </button>
         </div>
       </div>
 
-      {/* FORM */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input 
-            label="Full Name" 
-            value={form.fullName} 
-            disabled={!editing} 
-            onChange={(v) => handleChange("fullName", v)} 
-          />
-
-          <Input 
-            label="Email" 
-            value={form.email} 
-            disabled 
-          />
-
-          <Input 
-            label="College Name" 
-            value={form.collegeName} 
-            disabled={!editing} 
-            onChange={(v) => handleChange("collegeName", v)} 
-          />
-
-          <Input 
-            label="WhatsApp Number" 
-            value={form.whatsapp} 
-            disabled={!editing} 
-            onChange={(v) => handleChange("whatsapp", v)} 
-          />
-
-          <Input 
-            label="City" 
-            value={form.city} 
-            disabled={!editing} 
-            onChange={(v) => handleChange("city", v)} 
-          />
-
-          <Input 
-            label="Nationality" 
-            value={form.nationality} 
-            disabled={!editing} 
-            onChange={(v) => handleChange("nationality", v)} 
-          />
+      <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md border dark:border-gray-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Input label="Full Name" value={form.fullName} disabled={!editing} onChange={(v) => handleChange("fullName", v)} />
+          <Input label="Email" value={form.email} disabled />
+          <Input label="College Name" value={form.collegeName} disabled={!editing} onChange={(v) => handleChange("collegeName", v)} />
+          <Input label="WhatsApp Number" value={form.whatsapp} disabled={!editing} onChange={(v) => handleChange("whatsapp", v)} />
+          <Input label="City" value={form.city} disabled={!editing} onChange={(v) => handleChange("city", v)} />
+          <Input label="Nationality" value={form.nationality} disabled={!editing} onChange={(v) => handleChange("nationality", v)} />
         </div>
 
         {editing && (
-          <div className="mt-4 flex justify-end">
+          <div className="mt-8 flex justify-end">
             <button
               onClick={saveProfile}
-              className="px-4 py-2 rounded bg-blue-600 text-white transition hover:bg-blue-700"
+              className="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold transition hover:bg-blue-700 shadow-lg"
             >
               Save Changes
             </button>
@@ -174,26 +148,15 @@ export default function Profile() {
   );
 }
 
-// --- INPUT COMPONENT ---
-const Input = ({
-  label,
-  value,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  disabled?: boolean;
-  onChange?: (v: string) => void;
-}) => (
-  <div>
-    <label className="text-sm text-gray-600 font-medium">{label}</label>
+const Input = ({ label, value, disabled, onChange }: any) => (
+  <div className="space-y-1">
+    <label className="text-sm text-gray-600 dark:text-gray-400 font-medium">{label}</label>
     <input
       value={value}
       disabled={disabled}
       onChange={(e) => onChange && onChange(e.target.value)}
-      className={`mt-1 w-full p-3 rounded border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition ${
-        disabled ? "bg-gray-100 cursor-not-allowed" : ""
+      className={`w-full p-3 rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition ${
+        disabled ? "bg-gray-50 cursor-not-allowed opacity-75" : "bg-white"
       }`}
     />
   </div>
