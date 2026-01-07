@@ -1,107 +1,112 @@
 import { useEffect, useState } from "react";
-import { getPendingStudents, approveStudent } from "@/api/adminStudents";
+import { getPendingStudents, getAllUsers, approveStudent } from "@/api/adminStudents";
 import { toast } from "sonner";
 
-export default function AdminStudents() {
-  const [students, setStudents] = useState<any[]>([]);
+export default function AdminUserManagement() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [view, setView] = useState<"pending" | "all">("pending");
   const [loading, setLoading] = useState(true);
 
-  const loadStudents = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const response = await getPendingStudents();
+      const data = view === "pending" ? await getPendingStudents() : await getAllUsers();
       
-      // DEBUG: This helps you see the structure in the browser console
-      console.log("API Data:", response);
-
-      /**
-       * SAFE DATA MAPPING:
-       * Handles cases where the API returns the array directly, 
-       * or wrapped in an object like { data: [] } or { students: [] }
-       */
-      if (Array.isArray(response)) {
-        setStudents(response);
-      } else if (response && Array.isArray(response.students)) {
-        setStudents(response.students);
-      } else if (response && Array.isArray(response.data)) {
-        setStudents(response.data);
-      } else {
-        setStudents([]);
-      }
+      // Safe data mapping
+      if (Array.isArray(data)) setUsers(data);
+      else if (data?.data) setUsers(data.data);
+      else if (data?.users) setUsers(data.users);
+      else setUsers([]);
     } catch (err) {
-      console.error("Load error:", err);
-      toast.error("Failed to load students");
-      setStudents([]);
+      toast.error("Failed to load user data");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => { loadData(); }, [view]);
+
   const handleApprove = async (id: string) => {
     try {
       await approveStudent(id);
-      toast.success("Student approved");
-      // Refresh the list after approval
-      await loadStudents();
-    } catch (err) {
-      console.error("Approval error:", err);
-      toast.error("Approval failed");
+      toast.success("User approved successfully");
+      loadData();
+    } catch {
+      toast.error("Action failed");
     }
   };
 
-  useEffect(() => {
-    loadStudents();
-  }, []);
-
-  if (loading) return <div className="p-8 text-center">Loading pending students...</div>;
-
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Pending Student Approvals</h1>
-        <button 
-          onClick={loadStudents}
-          className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
-        >
-          Refresh
-        </button>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
+          <p className="text-sm text-gray-500">Manage approvals and view complete user data</p>
+        </div>
+        
+        <div className="flex bg-gray-100 p-1 rounded-lg">
+          <button 
+            onClick={() => setView("pending")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${view === "pending" ? "bg-white shadow text-blue-600" : "text-gray-600"}`}
+          >
+            Pending Approvals
+          </button>
+          <button 
+            onClick={() => setView("all")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${view === "all" ? "bg-white shadow text-blue-600" : "text-gray-600"}`}
+          >
+            All Users (Full Data)
+          </button>
+        </div>
       </div>
 
-      {students.length === 0 ? (
-        <div className="bg-blue-50 text-blue-700 p-4 rounded border border-blue-100">
-          No students are currently awaiting approval.
-        </div>
+      {loading ? (
+        <div className="text-center py-10 text-gray-500">Loading database...</div>
       ) : (
-        <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="p-4 font-semibold text-gray-600">Student Email</th>
+        <div className="bg-white shadow rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="p-4 font-semibold text-gray-600">Email</th>
+                <th className="p-4 font-semibold text-gray-600">Role</th>
                 <th className="p-4 font-semibold text-gray-600">Status</th>
+                {view === "all" && <th className="p-4 font-semibold text-gray-600">Password (Hashed)</th>}
                 <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {students.map((student) => (
-                <tr key={student._id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="p-4 text-gray-700">{student.email}</td>
+              {users.map((u) => (
+                <tr key={u._id} className="border-b hover:bg-gray-50">
+                  <td className="p-4 font-medium">{u.email}</td>
                   <td className="p-4">
-                    <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full uppercase font-medium">
-                      {student.status || 'Pending'}
+                    <span className="px-2 py-1 rounded text-xs bg-gray-100">{u.role}</span>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {u.status}
                     </span>
                   </td>
+                  {view === "all" && (
+                    <td className="p-4 font-mono text-xs text-gray-400 truncate max-w-[150px]">
+                      {u.password || "••••••••"}
+                    </td>
+                  )}
                   <td className="p-4 text-right">
-                    <button
-                      onClick={() => handleApprove(student._id)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm transition-colors shadow-sm"
-                    >
-                      Approve
-                    </button>
+                    {u.status === "PENDING" && (
+                      <button 
+                        onClick={() => handleApprove(u._id)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm shadow-sm"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    <button className="ml-2 text-blue-600 hover:underline text-sm">Edit</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {users.length === 0 && <p className="p-10 text-center text-gray-500">No users found in this category.</p>}
         </div>
       )}
     </div>
