@@ -2,13 +2,12 @@ import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware";
 import { ROLES } from "../constants/roles";
 
-/* ===== CONTROLLERS ===== */
 import {
   createCollege,
   assignManager,
   activateDeactivateCollege,
   getAllColleges,
-  getAllUsers // ✅ New controller import
+  getAllUsers, // ✅ Import the new controller
 } from "../controllers/adminController";
 
 import {
@@ -18,25 +17,21 @@ import {
 
 const router = express.Router();
 
-/* =========================
-   AUTH (SUPER ADMIN ONLY)
-========================= */
+// Auth Protection
 router.use(protect, authorize(ROLES.SUPER_ADMIN));
 
 /* =========================
-   STUDENT APPROVAL (STEP-1)
+    USER DATABASE ROUTES
 ========================= */
+// Step 1 Approval list
 router.get("/students/pending", getPendingStudents);
 router.patch("/students/:studentId/approve", approveStudent);
 
-/* =========================
-   USER DATABASE (FULL DATA)
-========================= */
-// ✅ New route for viewing all users, including emails and passwords
+// ✅ NEW: Full user database access
 router.get("/users/all", getAllUsers); 
 
 /* =========================
-   COLLEGE MANAGEMENT
+    COLLEGE MANAGEMENT
 ========================= */
 router.post("/college", createCollege);
 router.get("/colleges", getAllColleges);
