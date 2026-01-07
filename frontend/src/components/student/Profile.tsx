@@ -19,7 +19,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 1. Load Profile Data
+  // 1. Fetch Profile Data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -31,7 +31,7 @@ export default function Profile() {
         if (!user) throw new Error("User data missing");
 
         const formatted: StudentProfile = {
-          // 💡 Backend 'name' pampisthe daanni 'fullName' ki map chestunnam
+          // Backend nundi 'name' field ni priority ga tisukuntundi
           fullName: student?.name || student?.fullName || "Student", 
           email: user?.email || "",
           collegeName: student?.collegeName || "",
@@ -52,24 +52,24 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
-  // 2. Save Profile Update
+  // 2. Save Profile Update (Crucial Fix)
   const saveProfile = async () => {
     if (!form) return;
     try {
-      // 💡 Backend 'name' field ni expect chestundi kabatti payload ni ala set chesanu
-      const payload = {
-        name: form.fullName, // mapping fullName back to name for backend
+      // 💡 Ikada Backend field names ki map chestunnamu
+      const updatePayload = {
+        name: form.fullName, // mapping fullName to 'name' for DB
         collegeName: form.collegeName,
         whatsapp: form.whatsapp,
         city: form.city,
         nationality: form.nationality
       };
 
-      const res = await api.put("/student/me", payload);
+      const res = await api.put("/student/me", updatePayload);
       const rawUpdate = res.data?.data || res.data;
       const studentData = rawUpdate?.student;
 
-      // Update local state with saved data
+      // Update success ayyaka state ni refresh chestunnamu
       const newProfile: StudentProfile = {
           ...form,
           fullName: studentData?.name || studentData?.fullName || form.fullName,
@@ -82,30 +82,25 @@ export default function Profile() {
       setProfile(newProfile);
       setForm(newProfile);
       setEditing(false);
-      toast.success("Profile updated successfully!");
+      toast.success("Profile updated in database!");
     } catch (err: any) {
       console.error("Update failed:", err);
-      toast.error(err.response?.data?.message || "Update failed. Please try again.");
+      toast.error(err.response?.data?.message || "Update failed");
     }
   };
 
-  if (loading) return <div className="p-10 text-center dark:text-white">Loading profile...</div>;
-  if (!profile || !form) return <div className="p-10 text-center dark:text-white">No profile data found.</div>;
+  if (loading) return <div className="p-10 text-center dark:text-white">Loading...</div>;
+  if (!profile || !form) return <div className="p-10 text-center dark:text-white">No data.</div>;
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold dark:text-white">My Profile</h2>
         <div className="flex gap-2">
-          <button 
-            onClick={() => { setEditing(!editing); setForm(profile); }} 
-            className="px-4 py-2 border rounded-lg dark:text-white dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-          >
+          <button onClick={() => {setEditing(!editing); setForm(profile);}} className="px-4 py-2 border rounded-lg dark:text-white">
             {editing ? "Cancel" : "Edit Profile"}
           </button>
-          <button onClick={logout} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
-            Logout
-          </button>
+          <button onClick={logout} className="px-4 py-2 bg-red-600 text-white rounded-lg">Logout</button>
         </div>
       </div>
 
@@ -118,33 +113,15 @@ export default function Profile() {
           <Input label="City" value={form.city} disabled={!editing} onChange={(v: string) => setForm({...form, city: v})} />
           <Input label="Nationality" value={form.nationality} disabled={!editing} onChange={(v: string) => setForm({...form, nationality: v})} />
         </div>
-
-        {editing && (
-          <div className="mt-8 flex justify-end">
-            <button 
-              onClick={saveProfile} 
-              className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg active:scale-95 transition"
-            >
-              Save Changes
-            </button>
-          </div>
-        )}
+        {editing && <button onClick={saveProfile} className="mt-8 w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Save Changes</button>}
       </div>
     </div>
   );
 }
 
-// Reusable Input Component
 const Input = ({ label, value, disabled, onChange }: any) => (
   <div className="flex flex-col gap-2">
-    <label className="text-sm font-bold text-gray-600 dark:text-gray-400">{label}</label>
-    <input 
-      value={value} 
-      disabled={disabled} 
-      onChange={(e) => onChange && onChange(e.target.value)} 
-      className={`p-3.5 border rounded-xl outline-none transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
-        disabled ? "bg-gray-50 cursor-not-allowed opacity-70" : "focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-      }`} 
-    />
+    <label className="text-sm font-bold text-gray-500">{label}</label>
+    <input value={value} disabled={disabled} onChange={(e) => onChange && onChange(e.target.value)} className="p-3 border rounded-xl dark:bg-gray-800 dark:text-white disabled:bg-gray-100" />
   </div>
 );
