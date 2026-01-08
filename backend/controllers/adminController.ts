@@ -2,12 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User";
 import College from "../models/College";
+import Student from "../models/Student"; 
 import AuditLog from "../models/AuditLog";
 import { CustomError } from "../utils/errorHandler";
 import { generateOTP, sendOTPEmail } from "../utils/otp";
 
 /* =========================
-   AUTHENTICATED REQUEST
+   AUTHENTICATED REQUEST TYPE
 ========================= */
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -18,19 +19,33 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /* =========================
-   USER MANAGEMENT
+   USER & STUDENT MANAGEMENT
 ========================= */
 
-// GET ALL USERS
+// 🚀 FAST GET ALL USERS WITH SEARCH
 export const getAllUsers = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const users = await User.find()
-      .select("-password") // 🔥 never expose password
-      .sort({ createdAt: -1 });
+    const { search } = req.query;
+    let query: any = {};
+
+    // 🔍 Search by Email, Role, or Status
+    if (search) {
+      query.$or = [
+        { email: { $regex: search, $options: "i" } },
+        { role: { $regex: search, $options: "i" } },
+        { status: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // Optimization: .lean() makes queries much faster by returning plain JSON
+    const users = await User.find(query)
+      .select("-password") 
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.json({ success: true, count: users.length, data: users });
   } catch (err) {
@@ -38,23 +53,45 @@ export const getAllUsers = async (
   }
 };
 
-// GET USER DETAILS
-export const getUserById = async (
+// GET PENDING APPROVALS
+export const getPendingStudents = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
-    if (!user) throw new CustomError("User not found", 404);
-
-    res.json({ success: true, data: user });
+    const pending = await User.find({ status: "PENDING" })
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ success: true, data: pending });
   } catch (err) {
     next(err);
   }
 };
 
-// CREATE USER (EMP / STUDENT / TEACHER)
+// APPROVE STUDENT
+export const approveStudent = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status: "APPROVED", isActive: true },
+      { new: true }
+    ).select("-password");
+
+    if (!user) throw new CustomError("User not found", 404);
+
+    res.json({ success: true, message: "User approved successfully", data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// CREATE USER
 export const createUser = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -62,12 +99,10 @@ export const createUser = async (
 ) => {
   try {
     const { email, password, role, collegeId } = req.body;
-
     const exists = await User.findOne({ email });
     if (exists) throw new CustomError("User already exists", 400);
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = await User.create({
       email,
       password: hashedPassword,
@@ -75,6 +110,7 @@ export const createUser = async (
       collegeId,
       isVerified: true,
       isActive: true,
+      status: "APPROVED"
     });
 
     await AuditLog.create({
@@ -89,67 +125,22 @@ export const createUser = async (
   }
 };
 
-// UPDATE USER
-export const updateUser = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    ).select("-password");
-
-    if (!user) throw new CustomError("User not found", 404);
-
-    res.json({ success: true, data: user });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// DELETE USER
-export const deleteUser = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) throw new CustomError("User not found", 404);
-
-    res.json({ success: true, message: "User deleted" });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// ACTIVATE / DEACTIVATE USER
-export const updateUserStatus = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { isActive } = req.body;
-
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive },
-      { new: true }
-    ).select("-password");
-
-    res.json({ success: true, data: user });
-  } catch (err) {
-    next(err);
-  }
-};
-
 /* =========================
    COLLEGE MANAGEMENT
 ========================= */
+
+export const getAllColleges = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const colleges = await College.find().lean();
+    res.json({ success: true, data: colleges });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const createCollege = async (
   req: AuthenticatedRequest,
@@ -158,7 +149,6 @@ export const createCollege = async (
 ) => {
   try {
     const { name } = req.body;
-
     const exists = await College.findOne({ name });
     if (exists) throw new CustomError("College already exists", 400);
 
@@ -167,82 +157,7 @@ export const createCollege = async (
       superAdminId: req.user?.id,
       isActive: true,
     });
-
     res.status(201).json({ success: true, data: college });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const assignManager = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { collegeId, managerEmail } = req.body;
-
-    let manager = await User.findOne({ email: managerEmail });
-
-    if (!manager) {
-      manager = await User.create({
-        email: managerEmail,
-        role: "MANAGER",
-        collegeId,
-        isVerified: false,
-      });
-    } else {
-      manager.role = "MANAGER";
-      manager.collegeId = collegeId;
-    }
-
-    const otp = generateOTP();
-    manager.otpSecret = otp;
-    manager.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
-    await manager.save();
-
-    await sendOTPEmail(manager.email, otp);
-
-    res.json({
-      success: true,
-      message: "Manager assigned & OTP sent",
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const activateDeactivateCollege = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { collegeId } = req.params;
-    const { isActive } = req.body;
-
-    const college = await College.findByIdAndUpdate(
-      collegeId,
-      { isActive },
-      { new: true }
-    );
-
-    if (!college) throw new CustomError("College not found", 404);
-
-    res.json({ success: true, data: college });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const getAllColleges = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const colleges = await College.find();
-    res.json({ success: true, data: colleges });
   } catch (err) {
     next(err);
   }
@@ -261,8 +176,8 @@ export const getGlobalAnalytics = async (
       colleges: await College.countDocuments(),
       users: await User.countDocuments(),
       students: await User.countDocuments({ role: "STUDENT" }),
+      pendingApprovals: await User.countDocuments({ status: "PENDING" })
     };
-
     res.json({ success: true, data });
   } catch (err) {
     next(err);
