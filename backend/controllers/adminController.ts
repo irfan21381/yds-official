@@ -2,15 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User";
 import College from "../models/College";
-import AuditLog from "../models/AuditLog";
 import { CustomError } from "../utils/errorHandler";
 
-export interface AuthenticatedRequest extends Request {
-  user?: { id: string; role: string; collegeId?: string; };
-}
-
-// 🚀 FAST GET ALL USERS WITH SEARCH
-export const getAllUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+// 🚀 FAST ACCESS & SEARCH
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { search } = req.query;
     let query: any = {};
@@ -27,37 +22,34 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response, next
   } catch (err) { next(err); }
 };
 
-// GET PENDING STUDENTS
-export const getPendingStudents = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const users = await User.find({ status: "PENDING" }).select("-password").lean();
-    res.json({ success: true, data: users });
-  } catch (err) { next(err); }
-};
-
-// APPROVE STUDENT
-export const approveStudent = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const user = await User.findByIdAndUpdate(req.params.id, { status: "APPROVED", isActive: true }, { new: true });
+    const user = await User.findById(req.params.id).select("-password").lean();
     if (!user) throw new CustomError("User not found", 404);
     res.json({ success: true, data: user });
   } catch (err) { next(err); }
 };
 
-// ANALYTICS
-export const getGlobalAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const createUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password, role, collegeId } = req.body;
+    const exists = await User.findOne({ email });
+    if (exists) throw new CustomError("User already exists", 400);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ email, password: hashedPassword, role, collegeId, isVerified: true, isActive: true });
+    res.status(201).json({ success: true, data: user });
+  } catch (err) { next(err); }
+};
+
+// ... Add 'export const' to updateUser, deleteUser, updateUserStatus, createCollege, assignManager, activateDeactivateCollege, getAllColleges
+
+export const getGlobalAnalytics = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = {
       colleges: await College.countDocuments(),
       users: await User.countDocuments(),
-      pending: await User.countDocuments({ status: "PENDING" })
     };
     res.json({ success: true, data });
   } catch (err) { next(err); }
 };
-
-// ... Ensure ALL other functions (createUser, updateUserStatus, getAllColleges, createCollege) are exported
-export const createUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => { /* Logic */ };
-export const updateUserStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => { /* Logic */ };
-export const getAllColleges = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => { /* Logic */ };
-export const createCollege = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => { /* Logic */ };
