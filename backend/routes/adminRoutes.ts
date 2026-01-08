@@ -34,18 +34,19 @@ router.use(protect, authorize(ROLES.SUPER_ADMIN));
 /* =========================
    USER MANAGEMENT (CRUD)
 ========================= */
-router.get("/users", getAllUsers);               // list users
-router.get("/users/:id", getUserById);           // view details
-router.post("/users", createUser);               // add EMP / STUDENT
-router.put("/users/:id", updateUser);            // update user
-router.delete("/users/:id", deleteUser);         // delete user
-router.patch("/users/:id/status", updateUserStatus); // activate/deactivate
+router.get("/users", getAllUsers);               
+router.get("/users/:id", getUserById);           
+router.post("/users", createUser);               
+router.put("/users/:id", updateUser);            
+router.delete("/users/:id", deleteUser);         
+router.patch("/users/:id/status", updateUserStatus); 
 
 /* =========================
    STUDENT APPROVAL FLOW
 ========================= */
+// 💡 FIXED: Error code line 38 mismatch rakunda ikkada check cheyandi
 router.get("/students/pending", getPendingStudents);
-router.patch("/students/:studentId/approve", approveStudent);
+router.patch("/students/:id/approve", approveStudent);
 
 /* =========================
    COLLEGE MANAGEMENT
