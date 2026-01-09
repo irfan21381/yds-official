@@ -31,10 +31,15 @@ router.use(protect, authorize(ROLES.SUPER_ADMIN));
 /* =========================
    USER MANAGEMENT
 ========================= */
+// ✅ MAIN ROUTE (REST STANDARD)
 router.get("/users", getAllUsers);
+
+// ✅ BACKWARD COMPATIBILITY (FIXES /users/all 500 ERROR)
+router.get("/users/all", getAllUsers);
+
 router.get("/users/:id", getUserById);
 router.post("/users", createUser);
-router.put("/users/:id", updateUser); // ✅ FIXED
+router.put("/users/:id", updateUser);
 router.delete("/users/:id", deleteUser);
 router.patch("/users/:id/status", updateUserStatus);
 
