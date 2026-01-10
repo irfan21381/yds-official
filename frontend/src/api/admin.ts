@@ -1,79 +1,92 @@
 import { api } from "@/lib/api";
 
 /* =========================
+   USER MANAGEMENT
+========================= */
+
+export const getAllUsers = async (search = "") => {
+  const res = await api.get("/admin/users", {
+    params: { search },
+  });
+  return res.data;
+};
+
+export const getUserById = async (id: string) => {
+  const res = await api.get(`/admin/users/${id}`);
+  return res.data;
+};
+
+export const createUser = async (data: {
+  email: string;
+  password: string;
+  role: "STUDENT" | "EMPLOYEE";
+}) => {
+  const res = await api.post("/admin/users", data);
+  return res.data;
+};
+
+export const deleteUser = async (id: string) => {
+  const res = await api.delete(`/admin/users/${id}`);
+  return res.data;
+};
+
+/* =========================
    COLLEGE MANAGEMENT
 ========================= */
 
-// Create a new college
 export const createCollege = async (name: string) => {
-  const response = await api.post("/admin/college", { name });
-  return response.data;
+  const res = await api.post("/admin/college", { name });
+  return res.data;
 };
 
-// Assign a manager to a college
 export const assignManager = async (
   collegeId: string,
-  managerEmail: string
+  managerId: string
 ) => {
-  const response = await api.post(
+  const res = await api.post(
     `/admin/college/${collegeId}/manager`,
-    { managerEmail }
+    { managerId }
   );
-  return response.data;
+  return res.data;
 };
 
-// Activate or deactivate a college
 export const activateDeactivateCollege = async (
   collegeId: string,
   isActive: boolean
 ) => {
-  const response = await api.patch(
+  const res = await api.patch(
     `/admin/college/${collegeId}/activate`,
     { isActive }
   );
-  return response.data;
+  return res.data;
 };
 
-// Get list of all colleges
 export const getAllColleges = async () => {
-  const response = await api.get("/admin/colleges");
-  return response.data;
+  const res = await api.get("/admin/colleges");
+  return res.data;
 };
 
 /* =========================
    ANALYTICS
 ========================= */
 
-// Get admin dashboard stats
 export const getGlobalAnalytics = async () => {
-  const response = await api.get("/admin/stats");
-  return response.data;
+  const res = await api.get("/admin/analytics");
+  return res.data;
 };
 
 /* =========================
-   STUDENT APPROVAL FLOW ✅
+   STUDENT APPROVAL
 ========================= */
 
-// Get all pending students
 export const getPendingStudents = async () => {
-  const response = await api.get("/admin/students/pending");
-  return response.data;
+  const res = await api.get("/admin/students/pending");
+  return res.data;
 };
 
-// Approve a student account
 export const approveStudent = async (userId: string) => {
-  const response = await api.post(
+  const res = await api.patch(
     `/admin/students/${userId}/approve`
   );
-  return response.data;
-};
-
-/* =========================
-   USER MANAGEMENT (OPTIONAL)
-========================= */
-
-// Get users by role (STUDENT / MANAGER / TEACHER / EMPLOYEE)
-export const getUsersByRole = async (role: string) => {
-  const response = await api.get(`/admin/users?role=${role}`);
-  return response.data;
+  return res.data;
 };
