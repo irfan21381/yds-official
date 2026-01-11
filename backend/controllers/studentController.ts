@@ -82,6 +82,11 @@ export const updateStudentProfile = async (
    SUBJECTS / COURSES
 ========================================================= */
 
+/**
+ * 🔥 FINAL FIX:
+ * - If student record does NOT exist → auto create
+ * - Prevents "Student record not found" error forever
+ */
 export const getStudentEnrolledSubjects = async (
   req: Request,
   res: Response,
@@ -90,13 +95,19 @@ export const getStudentEnrolledSubjects = async (
   try {
     const auth = getUser(req);
 
-    const student = await Student.findOne({ userId: auth.id }).populate(
+    let student = await Student.findOne({ userId: auth.id }).populate(
       "enrolledSubjects",
       "name description"
     );
 
+    // 🔥 AUTO-CREATE STUDENT IF MISSING
     if (!student) {
-      throw new CustomError("Student record not found", 404);
+      student = await Student.create({
+        userId: auth.id,
+        enrolledSubjects: [],
+        isPublic: auth.role === "PUBLIC_STUDENT",
+        collegeId: auth.collegeId,
+      });
     }
 
     res.json({
@@ -120,8 +131,15 @@ export const getStudentMaterials = async (
   try {
     const auth = getUser(req);
 
-    const student = await Student.findOne({ userId: auth.id });
-    if (!student) throw new CustomError("Student not found", 404);
+    let student = await Student.findOne({ userId: auth.id });
+    if (!student) {
+      student = await Student.create({
+        userId: auth.id,
+        enrolledSubjects: [],
+        isPublic: auth.role === "PUBLIC_STUDENT",
+        collegeId: auth.collegeId,
+      });
+    }
 
     const query: any = { status: "APPROVED" };
 
