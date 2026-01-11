@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import Material from "../models/Material";
-import Subject from "../models/Subject";
 import Quiz from "../models/Quiz";
 import QuizAttempt from "../models/QuizAttempt";
 import User from "../models/User";
@@ -48,6 +47,11 @@ export const getStudentMe = async (
   }
 };
 
+/**
+ * 🔥 FIXED:
+ * - Name is saved in USER (frontend reads from user.name)
+ * - Student profile fields saved safely
+ */
 export const updateStudentProfile = async (
   req: Request,
   res: Response,
@@ -55,24 +59,38 @@ export const updateStudentProfile = async (
 ) => {
   try {
     const auth = getUser(req);
-    const { fullName, name, collegeName, whatsapp, city, nationality } =
-      req.body;
+    const { fullName, collegeName, whatsapp, city, nationality } = req.body;
 
-    const updateData = {
-      name: fullName || name,
+    // ✅ Update USER name
+    if (fullName) {
+      await User.findByIdAndUpdate(auth.id, { name: fullName });
+    }
+
+    // ✅ Update / create STUDENT profile
+    const studentUpdate: any = {
       collegeName,
       whatsapp,
       city,
       nationality,
     };
 
+    if (auth.collegeId) {
+      studentUpdate.collegeId = auth.collegeId;
+    }
+
     const student = await Student.findOneAndUpdate(
       { userId: auth.id },
-      updateData,
-      { new: true }
+      studentUpdate,
+      { new: true, upsert: true }
     );
 
-    res.json({ success: true, data: { student } });
+    res.json({
+      success: true,
+      data: {
+        student,
+        fullName,
+      },
+    });
   } catch (e) {
     next(e);
   }
@@ -95,18 +113,14 @@ export const getStudentEnrolledSubjects = async (
       "name description"
     );
 
-    // 🔥 AUTO-CREATE STUDENT (SAFE)
+    // 🔥 Auto-create student safely
     if (!student) {
       const studentData: any = {
         userId: auth.id,
         enrolledSubjects: [],
         isPublic: auth.role === "PUBLIC_STUDENT",
       };
-
-      // only add collegeId if it exists
-      if (auth.collegeId) {
-        studentData.collegeId = auth.collegeId;
-      }
+      if (auth.collegeId) studentData.collegeId = auth.collegeId;
 
       student = await Student.create(studentData);
     }
@@ -121,7 +135,7 @@ export const getStudentEnrolledSubjects = async (
 };
 
 /* =========================================================
-   MATERIALS
+   MATERIALS / COURSES LIST
 ========================================================= */
 
 export const getStudentMaterials = async (
@@ -134,17 +148,14 @@ export const getStudentMaterials = async (
 
     let student = await Student.findOne({ userId: auth.id });
 
-    // 🔥 AUTO-CREATE STUDENT (SAFE)
+    // 🔥 Auto-create student safely
     if (!student) {
       const studentData: any = {
         userId: auth.id,
         enrolledSubjects: [],
         isPublic: auth.role === "PUBLIC_STUDENT",
       };
-
-      if (auth.collegeId) {
-        studentData.collegeId = auth.collegeId;
-      }
+      if (auth.collegeId) studentData.collegeId = auth.collegeId;
 
       student = await Student.create(studentData);
     }
@@ -153,9 +164,15 @@ export const getStudentMaterials = async (
 
     if (student.isPublic) {
       query.collegeId = { $exists: false };
-    } else {
+    } else if (
+      Array.isArray(student.enrolledSubjects) &&
+      student.enrolledSubjects.length > 0
+    ) {
       query.collegeId = auth.collegeId;
       query.subjectId = { $in: student.enrolledSubjects };
+    } else {
+      // ✅ No enrolled subjects → return empty list (NO ERROR)
+      return res.json({ success: true, data: [] });
     }
 
     const materials = await Material.find(query).populate(
