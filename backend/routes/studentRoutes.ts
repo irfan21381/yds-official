@@ -5,7 +5,7 @@ import {
   getAvailableQuizzes,
   getQuizById,
   submitQuizAttempt,
-  getStudentEnrolledSubjects, // 👈 Line 37 daggara idi undefined kakunda chudali
+  getStudentEnrolledSubjects,
   getStudentMe,
   getStudentStats,
   getStudentActivity,
@@ -32,6 +32,9 @@ router.put("/me", updateStudentProfile);
 router.get("/stats", getStudentStats);
 router.get("/activity", getStudentActivity);
 
+/* 📘 Subjects */
+router.get("/subjects", getStudentEnrolledSubjects);
+
 /* 📚 Materials */
 router.get("/materials", getStudentMaterials);
 router.get("/materials/:materialId", getMaterialDetails);
@@ -40,9 +43,6 @@ router.get("/materials/:materialId", getMaterialDetails);
 router.get("/quizzes", getAvailableQuizzes);
 router.get("/quizzes/:quizId", getQuizById);
 router.post("/quizzes/:quizId/submit", submitQuizAttempt);
-
-/* 📘 Subjects */
-router.get("/subjects", getStudentEnrolledSubjects); // 👈 Line 37: Error ikkada vasthundi
 
 /* 🎓 Internships */
 router.get("/internships", getMyApplications);
