@@ -48,9 +48,9 @@ export const getStudentMe = async (
 };
 
 /**
- * 🔥 FIXED:
- * - Name is saved in USER (frontend reads from user.name)
- * - Student profile fields saved safely
+ * ✅ FINAL FIX
+ * - User name saved in User collection
+ * - Student profile updated safely
  */
 export const updateStudentProfile = async (
   req: Request,
@@ -61,12 +61,11 @@ export const updateStudentProfile = async (
     const auth = getUser(req);
     const { fullName, collegeName, whatsapp, city, nationality } = req.body;
 
-    // ✅ Update USER name
+    // Update USER name
     if (fullName) {
       await User.findByIdAndUpdate(auth.id, { name: fullName });
     }
 
-    // ✅ Update / create STUDENT profile
     const studentUpdate: any = {
       collegeName,
       whatsapp,
@@ -86,10 +85,7 @@ export const updateStudentProfile = async (
 
     res.json({
       success: true,
-      data: {
-        student,
-        fullName,
-      },
+      data: { student, fullName },
     });
   } catch (e) {
     next(e);
@@ -97,7 +93,7 @@ export const updateStudentProfile = async (
 };
 
 /* =========================================================
-   SUBJECTS / COURSES
+   SUBJECTS / COURSES (SAFE READ-ONLY)
 ========================================================= */
 
 export const getStudentEnrolledSubjects = async (
@@ -108,34 +104,31 @@ export const getStudentEnrolledSubjects = async (
   try {
     const auth = getUser(req);
 
-    let student = await Student.findOne({ userId: auth.id }).populate(
-      "enrolledSubjects",
-      "name description"
-    );
+    const student = await Student.findOne({ userId: auth.id })
+      .select("enrolledSubjects")
+      .populate({
+        path: "enrolledSubjects",
+        select: "name description",
+        options: { strictPopulate: false },
+      });
 
-    // 🔥 Auto-create student safely
-    if (!student) {
-      const studentData: any = {
-        userId: auth.id,
-        enrolledSubjects: [],
-        isPublic: auth.role === "PUBLIC_STUDENT",
-      };
-      if (auth.collegeId) studentData.collegeId = auth.collegeId;
-
-      student = await Student.create(studentData);
+    // ✅ Always return safe response
+    if (!student || !Array.isArray(student.enrolledSubjects)) {
+      return res.json({ success: true, data: [] });
     }
 
     res.json({
       success: true,
-      data: student.enrolledSubjects || [],
+      data: student.enrolledSubjects,
     });
   } catch (e) {
+    console.error("❌ getStudentEnrolledSubjects error:", e);
     next(e);
   }
 };
 
 /* =========================================================
-   MATERIALS / COURSES LIST
+   MATERIALS / COURSES LIST (SAFE)
 ========================================================= */
 
 export const getStudentMaterials = async (
@@ -146,33 +139,25 @@ export const getStudentMaterials = async (
   try {
     const auth = getUser(req);
 
-    let student = await Student.findOne({ userId: auth.id });
+    const student = await Student.findOne({ userId: auth.id });
 
-    // 🔥 Auto-create student safely
-    if (!student) {
-      const studentData: any = {
-        userId: auth.id,
-        enrolledSubjects: [],
-        isPublic: auth.role === "PUBLIC_STUDENT",
-      };
-      if (auth.collegeId) studentData.collegeId = auth.collegeId;
-
-      student = await Student.create(studentData);
+    // ✅ If no student or no subjects → empty list
+    if (
+      !student ||
+      (!student.isPublic &&
+        (!Array.isArray(student.enrolledSubjects) ||
+          student.enrolledSubjects.length === 0))
+    ) {
+      return res.json({ success: true, data: [] });
     }
 
     const query: any = { status: "APPROVED" };
 
     if (student.isPublic) {
       query.collegeId = { $exists: false };
-    } else if (
-      Array.isArray(student.enrolledSubjects) &&
-      student.enrolledSubjects.length > 0
-    ) {
+    } else {
       query.collegeId = auth.collegeId;
       query.subjectId = { $in: student.enrolledSubjects };
-    } else {
-      // ✅ No enrolled subjects → return empty list (NO ERROR)
-      return res.json({ success: true, data: [] });
     }
 
     const materials = await Material.find(query).populate(
@@ -182,6 +167,7 @@ export const getStudentMaterials = async (
 
     res.json({ success: true, data: materials });
   } catch (e) {
+    console.error("❌ getStudentMaterials error:", e);
     next(e);
   }
 };
@@ -237,7 +223,7 @@ export const askAI = async (
 };
 
 export const getAvailableQuizzes = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) => {
