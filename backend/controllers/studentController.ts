@@ -26,12 +26,18 @@ const getUser = (req: Request): AuthUser => {
 
 /* =========================================================
    PROFILE
-   ========================================================= */
+========================================================= */
 
-export const getStudentMe = async (req: Request, res: Response, next: NextFunction) => {
+export const getStudentMe = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const auth = getUser(req);
+
     const user = await User.findById(auth.id).select("-password");
+
     const student = await Student.findOne({ userId: auth.id })
       .populate("collegeId", "name")
       .populate("enrolledSubjects", "name");
@@ -42,19 +48,22 @@ export const getStudentMe = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-/** 🔥 FIXED: Frontend structure ki thaggattu payload mariyu response fix chesamu */
-export const updateStudentProfile = async (req: Request, res: Response, next: NextFunction) => {
+export const updateStudentProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const auth = getUser(req);
-    const { fullName, name, collegeName, whatsapp, city, nationality } = req.body;
+    const { fullName, name, collegeName, whatsapp, city, nationality } =
+      req.body;
 
-    // Frontend fullName ni DB name field ki map chestunnamu
     const updateData = {
-      name: fullName || name, 
+      name: fullName || name,
       collegeName,
       whatsapp,
       city,
-      nationality
+      nationality,
     };
 
     const student = await Student.findOneAndUpdate(
@@ -63,42 +72,54 @@ export const updateStudentProfile = async (req: Request, res: Response, next: Ne
       { new: true }
     );
 
-    // FIXED: Wrapping in { student } structure
-    res.json({ success: true, data: { student } }); 
+    res.json({ success: true, data: { student } });
   } catch (e) {
     next(e);
   }
 };
 
 /* =========================================================
-   COURSES / SUBJECTS
-   ========================================================= */
+   SUBJECTS / COURSES
+========================================================= */
 
-/** 🔥 FIXED: Database nundi enrolled subjects ni techi pampistundi */
-export const getStudentEnrolledSubjects = async (req: Request, res: Response, next: NextFunction) => {
+export const getStudentEnrolledSubjects = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const auth = getUser(req);
-    const student = await Student.findOne({ userId: auth.id }).populate("enrolledSubjects");
-    
-    if (!student) throw new CustomError("Student record not found", 404);
 
-    // Empty [] badulu database data pampistunnam
-    res.json({ 
-      success: true, 
-      data: student.enrolledSubjects || [] 
+    const student = await Student.findOne({ userId: auth.id }).populate(
+      "enrolledSubjects",
+      "name description"
+    );
+
+    if (!student) {
+      throw new CustomError("Student record not found", 404);
+    }
+
+    res.json({
+      success: true,
+      data: student.enrolledSubjects || [],
     });
   } catch (e) {
-    next(e as any);
+    next(e);
   }
 };
 
 /* =========================================================
    MATERIALS
-   ========================================================= */
+========================================================= */
 
-export const getStudentMaterials = async (req: Request, res: Response, next: NextFunction) => {
+export const getStudentMaterials = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const auth = getUser(req);
+
     const student = await Student.findOne({ userId: auth.id });
     if (!student) throw new CustomError("Student not found", 404);
 
@@ -111,18 +132,28 @@ export const getStudentMaterials = async (req: Request, res: Response, next: Nex
       query.subjectId = { $in: student.enrolledSubjects };
     }
 
-    const materials = await Material.find(query).populate("subjectId", "name");
+    const materials = await Material.find(query).populate(
+      "subjectId",
+      "name"
+    );
+
     res.json({ success: true, data: materials });
   } catch (e) {
     next(e);
   }
 };
 
-export const getMaterialDetails = async (req: Request, res: Response, next: NextFunction) => {
+export const getMaterialDetails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { materialId } = req.params;
+
     const material = await Material.findById(materialId);
     if (!material) throw new CustomError("Material not found", 404);
+
     res.json({ success: true, data: material });
   } catch (e) {
     next(e);
@@ -131,29 +162,42 @@ export const getMaterialDetails = async (req: Request, res: Response, next: Next
 
 /* =========================================================
    AI & QUIZZES
-   ========================================================= */
+========================================================= */
 
-export const askAI = async (req: Request, res: Response, next: NextFunction) => {
+export const askAI = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { question, materialId } = req.body;
     let answer = "";
+
     if (materialId) {
       const vector = await generateEmbeddings(question);
       const chunks = await searchEmbeddings(vector, 5, materialId);
-      const context = chunks.map(c => c.chunkText).join("\n");
+      const context = chunks.map((c) => c.chunkText).join("\n");
+
       answer = context
-        ? await generateText(`Context:\n${context}\n\nQ:${question}`)
+        ? await generateText(
+            `Context:\n${context}\n\nQuestion: ${question}`
+          )
         : await generateText(question);
     } else {
       answer = await generateText(question);
     }
+
     res.json({ success: true, data: { answer } });
   } catch (e) {
     next(e);
   }
 };
 
-export const getAvailableQuizzes = async (req: Request, res: Response, next: NextFunction) => {
+export const getAvailableQuizzes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const quizzes = await Quiz.find().populate("subjectId", "name");
     res.json({ success: true, data: quizzes });
@@ -162,29 +206,41 @@ export const getAvailableQuizzes = async (req: Request, res: Response, next: Nex
   }
 };
 
-export const getQuizById = async (req: Request, res: Response, next: NextFunction) => {
+export const getQuizById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
+    const quiz = await Quiz.findById(req.params.quizId);
     if (!quiz) throw new CustomError("Quiz not found", 404);
+
     res.json({ success: true, data: quiz });
   } catch (e) {
     next(e);
   }
 };
 
-export const submitQuizAttempt = async (req: Request, res: Response, next: NextFunction) => {
+export const submitQuizAttempt = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const auth = getUser(req);
     const { quizId } = req.params;
     const { answers } = req.body;
+
     const quiz = await Quiz.findById(quizId);
     if (!quiz) throw new CustomError("Quiz not found", 404);
+
     const attempt = await QuizAttempt.create({
       studentId: auth.id,
       quizId,
       answers,
-      totalQuestions: quiz.questions.length
+      totalQuestions: quiz.questions.length,
     });
+
     res.status(201).json({ success: true, data: attempt });
   } catch (e) {
     next(e);
@@ -192,14 +248,19 @@ export const submitQuizAttempt = async (req: Request, res: Response, next: NextF
 };
 
 /* =========================================================
-   DASHBOARD HELPERS
-   ========================================================= */
+   DASHBOARD
+========================================================= */
 
-// 🔥 FIXED: Added 'export' to prevent 'undefined' error in routes
-export const getStudentStats = async (req: Request, res: Response) => {
-  res.json({ success: true, data: { coursesCount: 0, quizzesCount: 0 } });
+export const getStudentStats = async (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: {
+      coursesCount: 0,
+      quizzesCount: 0,
+    },
+  });
 };
 
-export const getStudentActivity = async (req: Request, res: Response) => {
+export const getStudentActivity = async (_req: Request, res: Response) => {
   res.json({ success: true, data: [] });
 };
