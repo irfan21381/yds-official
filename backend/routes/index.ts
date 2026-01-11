@@ -17,28 +17,40 @@ import collegesRoutes from "./collegesRoutes";
 
 const router = Router();
 
-// 🌍 PUBLIC FIRST
+/* =========================================================
+   🌍 PUBLIC ROUTES (NO AUTH)
+========================================================= */
 router.use("/auth", authRoutes);
-router.use("/internships", internshipRoutes);
-router.use("/stats", statsRoutes); // ✅ PUBLIC (NO protect)
+router.use("/stats", statsRoutes);              // ✅ Public stats
+router.use("/internships", internshipRoutes);  // ✅ Public internships
+router.use("/contact", contactRoutes);          // ✅ Contact form
+router.use("/colleges", collegesRoutes);        // ✅ Public colleges list
 
-// 🔐 ROLE BASED
-router.use("/student", studentRoutes);
+/* =========================================================
+   🔐 ROLE-BASED ROUTES
+========================================================= */
+router.use("/student", studentRoutes); // 🔥 REQUIRED for /api/student/subjects
 router.use("/teacher", teacherRoutes);
 router.use("/manager", managerRoutes);
 router.use("/admin", adminRoutes);
 
-// OTHERS
+/* =========================================================
+   🤖 / 💳 / 👨‍💼 OTHER PROTECTED ROUTES
+========================================================= */
 router.use("/ai", aiRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/payment-requests", paymentRequestRoutes);
 router.use("/salary-payments", salaryPaymentRoutes);
 router.use("/employee", employeeRoutes);
-router.use("/contact", contactRoutes);
-router.use("/colleges", collegesRoutes);
 
+/* =========================================================
+   🌍 API ROOT CHECK
+========================================================= */
 router.get("/", (_req, res) => {
-  res.json({ ok: true, message: "YDS API running" });
+  res.status(200).json({
+    ok: true,
+    message: "YDS API running 🚀",
+  });
 });
 
 export default router;
