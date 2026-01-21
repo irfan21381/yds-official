@@ -1,35 +1,50 @@
 import { useState } from "react";
 
-// ❌ DO NOT use "@/api/admin"
-// ✅ Use RELATIVE PATH
+// ✅ Use RELATIVE PATH ONLY
 import { createUser } from "../../../api/admin";
 
-export default function AddUserModal({ onClose, onSuccess }: any) {
-  const [form, setForm] = useState({
+type UserRole = "STUDENT" | "EMPLOYEE";
+
+interface AddUserModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+interface CreateUserForm {
+  email: string;
+  password: string;
+  role: UserRole;
+}
+
+export default function AddUserModal({
+  onClose,
+  onSuccess,
+}: AddUserModalProps) {
+  const [form, setForm] = useState<CreateUserForm>({
     email: "",
     password: "",
     role: "STUDENT",
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
-    if (!form.email || !form.password) {
+    if (!form.email.trim() || !form.password.trim()) {
       setError("Email and password are required");
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError(null);
 
     try {
       await createUser(form);
       onSuccess();
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Create user failed:", err);
-      setError("Failed to create user");
+      setError("Failed to create user. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -45,29 +60,40 @@ export default function AddUserModal({ onClose, onSuccess }: any) {
         )}
 
         <input
+          type="email"
           placeholder="Email"
+          autoFocus
+          disabled={loading}
           className="w-full border p-2 mb-3 rounded"
           value={form.email}
           onChange={(e) =>
             setForm({ ...form, email: e.target.value })
           }
+          onKeyDown={(e) => e.key === "Enter" && submit()}
         />
 
         <input
           type="password"
           placeholder="Password"
+          autoComplete="new-password"
+          disabled={loading}
           className="w-full border p-2 mb-3 rounded"
           value={form.password}
           onChange={(e) =>
             setForm({ ...form, password: e.target.value })
           }
+          onKeyDown={(e) => e.key === "Enter" && submit()}
         />
 
         <select
+          disabled={loading}
           className="w-full border p-2 mb-4 rounded"
           value={form.role}
           onChange={(e) =>
-            setForm({ ...form, role: e.target.value })
+            setForm({
+              ...form,
+              role: e.target.value as UserRole,
+            })
           }
         >
           <option value="STUDENT">Student</option>
@@ -78,7 +104,7 @@ export default function AddUserModal({ onClose, onSuccess }: any) {
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 rounded bg-gray-200"
+            className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
           >
             Cancel
           </button>
@@ -86,7 +112,7 @@ export default function AddUserModal({ onClose, onSuccess }: any) {
           <button
             onClick={submit}
             disabled={loading}
-            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-70"
           >
             {loading ? "Creating..." : "Create"}
           </button>
