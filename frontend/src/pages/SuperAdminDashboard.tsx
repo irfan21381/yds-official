@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { createCollege, assignManager, activateDeactivateCollege, getGlobalAnalytics, getAllColleges } from '@/api/admin';
+import {
+  createCollege,
+  assignManager,
+  activateDeactivateCollege,
+  getGlobalAnalytics,
+  getAllColleges
+} from '@/api/admin';
 
-// Import new modular components
 import GlobalAnalyticsCard from '@/components/superadmin/GlobalAnalyticsCard';
 import CreateCollegeForm from '@/components/superadmin/CreateCollegeForm';
 import AssignManagerForm from '@/components/superadmin/AssignManagerForm';
@@ -31,59 +36,83 @@ interface AnalyticsData {
 
 const SuperAdminDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [collegeName, setCollegeName] = useState<string>('');
-  const [managerEmail, setManagerEmail] = useState<string>('');
-  const [selectedCollegeId, setSelectedCollegeId] = useState<string>('');
+
+  const [collegeName, setCollegeName] = useState('');
+  const [managerEmail, setManagerEmail] = useState('');
+  const [selectedCollegeId, setSelectedCollegeId] = useState('');
   const [colleges, setColleges] = useState<College[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false); // General loading for form submissions
-  const [loadingColleges, setLoadingColleges] = useState<boolean>(true);
-  const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(true);
 
+  const [loading, setLoading] = useState(false);
+  const [loadingColleges, setLoadingColleges] = useState(true);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
+  // ================= FETCH DATA =================
 
   useEffect(() => {
-    fetchColleges();
-    fetchAnalytics();
+    fetchInitialData();
   }, []);
 
+  const fetchInitialData = async () => {
+    await Promise.all([fetchColleges(), fetchAnalytics()]);
+  };
+
   const fetchColleges = async () => {
-    setLoadingColleges(true);
     try {
+      setLoadingColleges(true);
       const response = await getAllColleges();
-      setColleges(response.data);
+
+      console.log("Colleges API:", response);
+
+      const data = response?.data?.data || response?.data || [];
+      setColleges(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      console.error('Error fetching colleges:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch colleges.');
+      console.error(error);
+      toast.error(error?.response?.data?.message || 'Failed to fetch colleges');
+      setColleges([]);
     } finally {
       setLoadingColleges(false);
     }
   };
 
   const fetchAnalytics = async () => {
-    setLoadingAnalytics(true);
     try {
+      setLoadingAnalytics(true);
       const response = await getGlobalAnalytics();
-      setAnalytics(response.data);
+
+      console.log("Analytics API:", response);
+
+      const data = response?.data?.data || response?.data || null;
+      setAnalytics(data);
     } catch (error: any) {
-      console.error('Error fetching analytics:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch global analytics.');
+      console.error(error);
+      toast.error(error?.response?.data?.message || 'Failed to fetch analytics');
+      setAnalytics(null);
     } finally {
       setLoadingAnalytics(false);
     }
   };
 
+  // ================= HANDLERS =================
+
   const handleCreateCollege = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (!collegeName.trim()) {
+      toast.error("College name required");
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await createCollege(collegeName);
-      toast.success(`College "${response.data.name}" created successfully!`);
+
+      toast.success(response?.data?.message || "College created");
       setCollegeName('');
-      fetchColleges(); // Refresh list
-      fetchAnalytics(); // Refresh analytics
+      fetchInitialData();
     } catch (error: any) {
-      console.error('Create college error:', error);
-      toast.error(error.response?.data?.message || 'Failed to create college.');
+      console.error(error);
+      toast.error(error?.response?.data?.message || 'Create failed');
     } finally {
       setLoading(false);
     }
@@ -91,41 +120,59 @@ const SuperAdminDashboard: React.FC = () => {
 
   const handleAssignManager = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (!selectedCollegeId || !managerEmail.trim()) {
+      toast.error("All fields required");
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await assignManager(selectedCollegeId, managerEmail);
-      toast.success(response.message);
+
+      toast.success(response?.data?.message || "Manager assigned");
       setManagerEmail('');
       setSelectedCollegeId('');
-      fetchAnalytics(); // Refresh analytics
+      fetchAnalytics();
     } catch (error: any) {
-      console.error('Assign manager error:', error);
-      toast.error(error.response?.data?.message || 'Failed to assign manager.');
+      console.error(error);
+      toast.error(error?.response?.data?.message || 'Assign failed');
     } finally {
       setLoading(false);
     }
   };
 
   const handleToggleCollegeStatus = async (collegeId: string, currentStatus: boolean) => {
-    setLoading(true);
     try {
+      setLoading(true);
       const response = await activateDeactivateCollege(collegeId, !currentStatus);
-      toast.success(response.message);
-      fetchColleges(); // Refresh list
-      fetchAnalytics(); // Refresh analytics
+
+      toast.success(response?.data?.message || "Updated successfully");
+      fetchInitialData();
     } catch (error: any) {
-      console.error('Toggle college status error:', error);
-      toast.error(error.response?.data?.message || 'Failed to update college status.');
+      console.error(error);
+      toast.error(error?.response?.data?.message || 'Update failed');
     } finally {
       setLoading(false);
     }
   };
 
+  // ================= UI SAFETY =================
+
+  if (!user) {
+    return <div className="text-center mt-10 text-red-500">Unauthorized</div>;
+  }
+
   return (
     <div className="container mx-auto p-4 space-y-8">
-      <h1 className="text-4xl font-bold text-center mb-8">Super Admin Dashboard</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">
+        Super Admin Dashboard
+      </h1>
 
-      <GlobalAnalyticsCard analytics={analytics} loadingAnalytics={loadingAnalytics} />
+      <GlobalAnalyticsCard
+        analytics={analytics}
+        loadingAnalytics={loadingAnalytics}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <CreateCollegeForm
