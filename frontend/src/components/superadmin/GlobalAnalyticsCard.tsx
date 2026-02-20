@@ -3,16 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 
 interface AnalyticsData {
-  totalColleges: number;
-  totalUsers: number;
-  totalTeachers: number;
-  totalStudents: number;
-  totalMaterials: number;
-  totalQuizzes: number;
-  totalQuizAttempts: number;
-  aiUsage: {
-    totalQueries: number;
-    totalEmbeddings: number;
+  totalColleges?: number;
+  totalUsers?: number;
+  totalTeachers?: number;
+  totalStudents?: number;
+  totalMaterials?: number;
+  totalQuizzes?: number;
+  totalQuizAttempts?: number;
+  aiUsage?: {
+    totalQueries?: number;
+    totalEmbeddings?: number;
   };
 }
 
@@ -28,6 +28,7 @@ const GlobalAnalyticsCard: React.FC<GlobalAnalyticsCardProps> = ({ analytics, lo
         <CardTitle>Global Analytics</CardTitle>
         <CardDescription>Overview of the entire YDS EDUAI platform.</CardDescription>
       </CardHeader>
+
       <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loadingAnalytics ? (
           <div className="col-span-full text-center py-8">
@@ -36,49 +37,39 @@ const GlobalAnalyticsCard: React.FC<GlobalAnalyticsCardProps> = ({ analytics, lo
           </div>
         ) : analytics ? (
           <>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">Total Colleges</h3>
-              <p className="text-2xl">{analytics.totalColleges}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">Total Users</h3>
-              <p className="text-2xl">{analytics.totalUsers}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">Total Teachers</h3>
-              <p className="text-2xl">{analytics.totalTeachers}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">Total Students</h3>
-              <p className="text-2xl">{analytics.totalStudents}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">Approved Materials</h3>
-              <p className="text-2xl">{analytics.totalMaterials}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">Total Quizzes</h3>
-              <p className="text-2xl">{analytics.totalQuizzes}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">Total Quiz Attempts</h3>
-              <p className="text-2xl">{analytics.totalQuizAttempts}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">AI Queries</h3>
-              <p className="text-2xl">{analytics.aiUsage.totalQueries}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold">AI Embeddings</h3>
-              <p className="text-2xl">{analytics.aiUsage.totalEmbeddings}</p>
-            </div>
+            <StatCard title="Total Colleges" value={analytics.totalColleges ?? 0} />
+            <StatCard title="Total Users" value={analytics.totalUsers ?? 0} />
+            <StatCard title="Total Teachers" value={analytics.totalTeachers ?? 0} />
+            <StatCard title="Total Students" value={analytics.totalStudents ?? 0} />
+            <StatCard title="Approved Materials" value={analytics.totalMaterials ?? 0} />
+            <StatCard title="Total Quizzes" value={analytics.totalQuizzes ?? 0} />
+            <StatCard title="Total Quiz Attempts" value={analytics.totalQuizAttempts ?? 0} />
+
+            {/* SAFE AI Usage */}
+            <StatCard
+              title="AI Queries"
+              value={analytics.aiUsage?.totalQueries ?? 0}
+            />
+            <StatCard
+              title="AI Embeddings"
+              value={analytics.aiUsage?.totalEmbeddings ?? 0}
+            />
           </>
         ) : (
-          <p className="col-span-full text-center">No analytics data available.</p>
+          <p className="col-span-full text-center">
+            No analytics data available.
+          </p>
         )}
       </CardContent>
     </Card>
   );
 };
+
+const StatCard = ({ title, value }: { title: string; value: number }) => (
+  <div className="p-4 border rounded-md">
+    <h3 className="text-lg font-semibold">{title}</h3>
+    <p className="text-2xl">{value}</p>
+  </div>
+);
 
 export default GlobalAnalyticsCard;
